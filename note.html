@@ -140,16 +140,19 @@
     font-size: var(--note-fs);
     font-style: var(--note-style);
   }
-  textarea#text {
-    flex: 1; border: none; outline: none; resize: none;
+  #text {
+    flex: 1; outline: none; overflow-y: auto;
     background: transparent; padding: 10px 14px 24px;
     line-height: var(--note-lh); color: inherit;
+    font-family: var(--note-font); font-size: var(--note-fs); font-style: var(--note-style);
+    white-space: pre-wrap; word-break: break-word;
   }
-  textarea::placeholder { color: rgba(0,0,0,.25); }
-  textarea.ruled {
+  #text:empty::before { content: attr(data-placeholder); color: rgba(0,0,0,.25); }
+  #text.ruled {
     background-attachment: local;
     background-origin: content-box;
   }
+  textarea::placeholder { color: rgba(0,0,0,.25); }
 
   /* 鬧鈴 */
   #alarmPop {
@@ -403,10 +406,13 @@
         </select>
         <button id="sizeDown" title="字縮小">A−</button>
         <button id="sizeUp" title="字放大">A＋</button>
-        <button id="italicBtn" title="斜體">I</button>
+        <button id="boldBtn" title="選字加粗（Ctrl+B）" style="font-weight:700;width:24px">B</button>
+        <button id="italicBtn" title="選字斜體（Ctrl+I）">I</button>
+        <button id="hlBtn" title="選字畫螢光筆"><span style="background:#FFE873;padding:0 3px;border-radius:2px">A</span></button>
       </div>
       <div class="grp" id="drawTools">
         <button id="penBtn" class="on">筆</button>
+        <button id="markerBtn">螢光筆</button>
         <button id="eraserBtn">橡皮擦</button>
         <button id="clearBtn">清空</button>
       </div>
@@ -423,7 +429,7 @@
     <div id="grain"></div>
     <div id="content">
       <div id="imgs"></div>
-      <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
+      <div id="text" contenteditable="true" data-placeholder="寫點什麼…" spellcheck="false"></div>
       <div id="todo"></div>
       <div id="draw"><canvas id="cv"></canvas></div>
       <div id="week"></div>
@@ -504,14 +510,28 @@
   let cardIndex = Math.min(note.cardIndex || 0, cards.length - 1)
   let toolsOpen = !!note.toolsOpen
 
-  ta.value = note.content || ''
+  // 內文改富文字：取/存純文字的小工具
+  const getText = () => ta.innerText.replace(/ /g, ' ')
+  const setText = t => { ta.textContent = t }
+
+  if (note.contentHtml) {
+    ta.innerHTML = note.contentHtml
+  } else {
+    setText(note.content || '')
+    // 舊版「整張斜體」的便條轉成富文字斜體
+    if (italic && (note.content || '').trim()) {
+      ta.innerHTML = '<i>' + ta.innerHTML + '</i>'
+      italic = false
+    }
+  }
+  document.execCommand('styleWithCSS', false, true)
   modeSel.value = mode
   if (note.collapsed) { document.body.classList.add('collapsed'); foldBtn.textContent = '▾' }
   if (note.pinned === false) document.body.classList.add('unpinned')
 
   let timer
   const save = () => ipcRenderer.send('set-note', id, {
-    content: ta.value, mode, items, color, drawing,
+    content: getText(), contentHtml: ta.innerHTML, mode, items, color, drawing,
     fontSize, italic, font, images, alarm,
     week, month: monthData, cards, cardIndex, toolsOpen
   })
@@ -550,9 +570,24 @@
   }
   document.getElementById('sizeUp').onclick = () => { fontSize = Math.min(26, fontSize + 2); applyTextStyle(); save() }
   document.getElementById('sizeDown').onclick = () => { fontSize = Math.max(12, fontSize - 2); applyTextStyle(); save() }
-  italicBtn.onclick = () => { italic = !italic; applyTextStyle(); save() }
   fontSel.onchange = () => { font = fontSel.value; applyTextStyle(); save() }
   applyTextStyle()
+
+  // 加粗 / 斜體 / 螢光筆：作用在選取的文字上（空白/橫線模式）
+  const HL_COLOR = '#FFE873'
+  const richCmd = (fn) => {
+    if (mode !== 'plain' && mode !== 'ruled') return
+    ta.focus()
+    fn()
+    saveSoon()
+  }
+  document.getElementById('boldBtn').onclick = () => richCmd(() => document.execCommand('bold'))
+  italicBtn.onclick = () => richCmd(() => document.execCommand('italic'))
+  document.getElementById('hlBtn').onclick = () => richCmd(() => {
+    const cur = (document.queryCommandValue('hiliteColor') || '').replace(/\s/g, '').toLowerCase()
+    const on = cur === 'rgb(255,232,115)' || cur === HL_COLOR.toLowerCase()
+    document.execCommand('hiliteColor', false, on ? 'transparent' : HL_COLOR)
+  })
 
   // ---------- 底色 ----------
   function applyColor() {
@@ -652,7 +687,13 @@
   }
   document.addEventListener('paste', (e) => {
     for (const item of e.clipboardData.items) {
-      if (item.type.startsWith('image/')) { addImageFile(item.getAsFile()); e.preventDefault() }
+      if (item.type.startsWith('image/')) { addImageFile(item.getAsFile()); e.preventDefault(); return }
+    }
+    // 貼文字進內文時轉純文字，不帶外面的格式進來
+    if (ta.contains(e.target) || e.target === ta) {
+      e.preventDefault()
+      const t = e.clipboardData.getData('text/plain')
+      if (t) document.execCommand('insertText', false, t)
     }
   })
   document.addEventListener('dragover', (e) => e.preventDefault())
@@ -694,8 +735,9 @@
   const cv = document.getElementById('cv')
   const ctx = cv.getContext('2d')
   const penBtn = document.getElementById('penBtn')
+  const markerBtn = document.getElementById('markerBtn')
   const eraserBtn = document.getElementById('eraserBtn')
-  let erasing = false
+  let tool = 'pen'   // pen | marker | erase
 
   function resizeCanvas() {
     const r = draw.getBoundingClientRect()
@@ -722,9 +764,20 @@
 
   let pen = false, last = null
   function strokeTo(x, y) {
-    ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over'
-    ctx.strokeStyle = 'rgba(58,53,44,.95)'
-    ctx.lineWidth = erasing ? 18 : 2.4
+    if (tool === 'erase') {
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.strokeStyle = 'rgba(0,0,0,1)'
+      ctx.lineWidth = 18
+    } else if (tool === 'marker') {
+      // 螢光筆：寬筆、半透明、darken 疊色不會越畫越黑
+      ctx.globalCompositeOperation = 'darken'
+      ctx.strokeStyle = 'rgba(255,228,90,.55)'
+      ctx.lineWidth = 14
+    } else {
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.strokeStyle = 'rgba(58,53,44,.95)'
+      ctx.lineWidth = 2.4
+    }
     ctx.beginPath()
     ctx.moveTo(last[0], last[1])
     ctx.lineTo(x, y)
@@ -745,13 +798,15 @@
   cv.addEventListener('pointerup', penUp)
   cv.addEventListener('pointercancel', penUp)
 
-  const setEraser = (on) => {
-    erasing = on
-    penBtn.classList.toggle('on', !on)
-    eraserBtn.classList.toggle('on', on)
+  const setTool = (t) => {
+    tool = t
+    penBtn.classList.toggle('on', t === 'pen')
+    markerBtn.classList.toggle('on', t === 'marker')
+    eraserBtn.classList.toggle('on', t === 'erase')
   }
-  penBtn.onclick = () => setEraser(false)
-  eraserBtn.onclick = () => setEraser(true)
+  penBtn.onclick = () => setTool('pen')
+  markerBtn.onclick = () => setTool('marker')
+  eraserBtn.onclick = () => setTool('erase')
   document.getElementById('clearBtn').onclick = () => {
     if (!drawing || confirm('清空這張手寫便條？')) {
       ctx.clearRect(0, 0, cv.width, cv.height)
@@ -933,7 +988,7 @@
     const next = modeSel.value
     if (next === 'todo' && mode !== 'todo' && !items.length) {
       items = ta.value.split('\n').filter(l => l.trim()).map(t => ({ text: t, done: false }))
-    } else if (next !== 'todo' && mode === 'todo' && !ta.value.trim()) {
+    } else if (next !== 'todo' && mode === 'todo' && !getText().trim()) {
       ta.value = items.filter(i => i.text.trim()).map(i => i.text).join('\n')
     }
     mode = next
@@ -959,7 +1014,7 @@
       : mode === 'week' ? !Object.values(week).some(v => v && v.trim())
       : mode === 'month' ? !Object.values(monthData.entries || {}).some(e => Object.values(e).some(v => v && v.trim()))
       : mode === 'cards' ? !cards.some(c => (c.front || '').trim() || (c.back || '').trim())
-      : ta.value.trim() === ''
+      : getText().trim() === ''
     if (empty || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
   }
 

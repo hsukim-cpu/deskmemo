@@ -128,6 +128,7 @@ ipcMain.on('set-note', (e, id, payload) => {
   const note = notes.find(n => n.id === id)
   if (!note) return
   note.content = payload.content
+  note.contentHtml = payload.contentHtml
   note.mode = payload.mode
   note.items = payload.items
   note.color = payload.color
@@ -298,6 +299,7 @@ async function selftest() {
     {
       id: 'demo1', mode: 'ruled', color: 'yellow', height: 380, width: 300,
       content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384',
+      contentHtml: '10:00 跟廠商對帳<br>回覆<b>客人尺寸</b>問題<br><span style="background-color:#FFE873">下午寄出 #4384</span>',
       alarm: new Date(Date.now() + 86400000).toISOString()
     },
     {
