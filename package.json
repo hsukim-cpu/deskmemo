@@ -1,6 +1,6 @@
 {
   "name": "desktop-sticky-notes",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "跨平台桌面便利貼：置頂、可收合、闔蓋/關機警示",
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,9 @@
   },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^3.0.1",
+    "rcedit": "^5.0.2"
   },
   "build": {
     "appId": "tw.kim.stickynotes",
@@ -38,6 +40,7 @@
       ],
       "artifactName": "DeskMemo-${arch}.${ext}",
       "category": "public.app-category.productivity"
-    }
+    },
+    "afterPack": "scripts/afterPack.js"
   }
 }

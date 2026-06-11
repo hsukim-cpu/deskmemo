@@ -29,14 +29,31 @@
     height: 34px; flex: 0 0 34px; position: relative;
     -webkit-app-region: drag; user-select: none;
   }
-  /* 紅色圖釘 */
+  /* 紅色圖釘：釘上=壓在紙上；拔起=往上提、傾斜、影子拉遠 */
   #pin {
-    position: absolute; left: 50%; top: 1px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 1px;
+    transform: translateX(-50%) translateY(0) rotate(0deg);
+    transform-origin: 50% 30%;
     width: 26px; height: 30px; cursor: pointer;
     -webkit-app-region: no-drag;
     filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
+    transition: transform .3s cubic-bezier(.34, 1.8, .5, 1), filter .3s ease;
+    z-index: 9;
   }
-  body.unpinned #pin { filter: grayscale(1) opacity(.45); }
+  body.unpinned #pin {
+    transform: translateX(-58%) translateY(-9px) rotate(-24deg);
+    filter: grayscale(.45) opacity(.85) drop-shadow(4px 11px 5px rgba(0,0,0,.22));
+  }
+  /* 拔起後紙上留一個小針孔 */
+  #pinhole {
+    position: absolute; left: 50%; top: 26px; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(0,0,0,.28);
+    box-shadow: 0 1px 0 rgba(255,255,255,.5);
+    opacity: 0; transition: opacity .25s ease .1s;
+    pointer-events: none;
+  }
+  body.unpinned #pinhole { opacity: 1; }
 
   .ctrl { opacity: 0; transition: opacity .15s; }
   body:hover .ctrl { opacity: 1; }
@@ -113,6 +130,7 @@
 </head>
 <body class="c-yellow">
   <div class="bar">
+    <div id="pinhole"></div>
     <select id="modeSel" class="ctrl" title="便條紙樣式">
       <option value="plain">空白</option>
       <option value="ruled">橫線</option>
