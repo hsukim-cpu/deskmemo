@@ -73,7 +73,10 @@
     filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
     transition: transform .3s cubic-bezier(.34, 1.8, .5, 1), filter .3s ease;
     z-index: 9;
+    /* 只有紅色釘頭可以點，避免整塊 SVG 蓋住旁邊的按鈕 */
+    pointer-events: none;
   }
+  #pin circle { pointer-events: visiblePainted; }
   body.unpinned #pin {
     transform: translateX(-58%) translateY(-9px) rotate(-24deg);
     filter: grayscale(.45) opacity(.85) drop-shadow(4px 11px 5px rgba(0,0,0,.22));
@@ -100,6 +103,7 @@
   .btns {
     position: absolute; right: 5px; top: 4px; display: flex; gap: 1px;
     -webkit-app-region: no-drag;
+    z-index: 10;   /* 高於圖釘，窄視窗時按鈕不被圖釘擋住 */
   }
   .btns button {
     width: 25px; height: 25px; border: none; background: transparent;
@@ -1113,7 +1117,22 @@
 
   ta.addEventListener('input', saveSoon)
 
-  document.getElementById('pin').onclick = () => ipcRenderer.send('toggle-pin', id)
+  // 圖釘自動站在「樣式選單」與「右側按鈕」中間的空檔，窄視窗不跟按鈕打架
+  const pinEl = document.getElementById('pin')
+  const pinholeEl = document.getElementById('pinhole')
+  function placePin() {
+    const bar = document.querySelector('.bar').getBoundingClientRect()
+    const sel = modeSel.getBoundingClientRect()
+    const btns = document.querySelector('.btns').getBoundingClientRect()
+    const center = (sel.right + btns.left) / 2 - bar.left
+    const x = Math.max(sel.right - bar.left + 18, center)
+    pinEl.style.left = x + 'px'
+    pinholeEl.style.left = x + 'px'
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(placePin))
+  requestAnimationFrame(placePin)
+
+  pinEl.onclick = () => ipcRenderer.send('toggle-pin', id)
   ipcRenderer.on('pinned', (e, p) => document.body.classList.toggle('unpinned', !p))
 
   foldBtn.onclick = () => ipcRenderer.send('toggle-collapse', id)

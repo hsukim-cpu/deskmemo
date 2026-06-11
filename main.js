@@ -73,7 +73,7 @@ function createNoteWindow(note) {
     resizable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
-    minWidth: 200,
+    minWidth: 248,
     minHeight: BAR_H,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   })
