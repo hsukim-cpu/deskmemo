@@ -43,11 +43,14 @@ function saveNotes() {
 }
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-// 清單：有沒打勾的項目才算未處理；手寫：有筆跡就算；其他：有字就算
-const notePending = n => n.mode === 'todo'
-  ? (n.items || []).some(i => i.text && i.text.trim() && !i.done)
-  : n.mode === 'draw' ? !!n.drawing
-  : !!(n.content && n.content.trim())
+// 列表：有沒打勾的項目才算未處理；手寫：有筆跡就算；空白/橫線：有字就算
+// 週記/月記/單字卡是「常駐筆記本」，不算待辦、不觸發關機警示
+const notePending = n => {
+  if (n.mode === 'week' || n.mode === 'month' || n.mode === 'cards') return false
+  if (n.mode === 'todo') return (n.items || []).some(i => i.text && i.text.trim() && !i.done)
+  if (n.mode === 'draw') return !!n.drawing
+  return !!(n.content && n.content.trim())
+}
 const hasPending = () => notes.some(notePending)
 const pendingCount = () => notes.filter(notePending).length
 
@@ -132,6 +135,10 @@ ipcMain.on('set-note', (e, id, payload) => {
   note.font = payload.font
   note.images = payload.images
   note.alarm = payload.alarm
+  note.week = payload.week
+  note.month = payload.month
+  note.cards = payload.cards
+  note.cardIndex = payload.cardIndex
   saveNotes()
 })
 
@@ -298,7 +305,19 @@ async function selftest() {
         { text: '訂貨清單給齊', done: false }
       ]
     },
-    { id: 'demo3', mode: 'draw', color: 'blue', content: '' }
+    { id: 'demo3', mode: 'draw', color: 'gray', content: '' },
+    {
+      id: 'demo4', mode: 'week', color: 'kraft', content: '', height: 420, width: 300,
+      week: { month: '六月第二週', mon: '對帳、出貨 #4384', tue: '新品上架', wed: '', thu: '訂貨清單給齊', fri: '週報', sat: '', sun: '' }
+    },
+    {
+      id: 'demo5', mode: 'month', color: 'ivory', content: '', height: 400, width: 340,
+      month: { ym: '2026-06', entries: { '2026-06': { 8: '新品 9 折', 11: '便利貼 app', 15: '對帳' } } }
+    },
+    {
+      id: 'demo6', mode: 'cards', color: 'white', content: '', height: 340, width: 250,
+      cards: [{ front: 'soutenir', back: '支持、支撐' }, { front: '', back: '' }]
+    }
   ]
   notes.forEach((n, i) => { const p = defaultPosition(i); n.x = p.x - i * 300; n.y = p.y })
   notes.forEach(createNoteWindow)
@@ -309,6 +328,10 @@ async function selftest() {
   fs.writeFileSync(path.join(__dirname, 'todo-preview.png'), img2.toPNG())
   const img3 = await noteWindows.get('demo3').webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'draw-preview.png'), img3.toPNG())
+  for (const [demoId, file] of [['demo4', 'week-preview.png'], ['demo5', 'month-preview.png'], ['demo6', 'cards-preview.png']]) {
+    const img = await noteWindows.get(demoId).webContents.capturePage()
+    fs.writeFileSync(path.join(__dirname, file), img.toPNG())
+  }
   const w = showWarning('shutdown')
   await sleep(1500)
   const img4 = await w.webContents.capturePage()

@@ -3,44 +3,43 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body.c-yellow { --paper: #FCE98C; --fold: #E2CA61; --line: rgba(141,116,43,.32); --dot: #F7DD6E; }
-  body.c-pink   { --paper: #FFD3DE; --fold: #EFAFC1; --line: rgba(168,86,108,.28); --dot: #FFC2D1; }
-  body.c-blue   { --paper: #C8E6FF; --fold: #9FCAEF; --line: rgba(66,108,150,.28); --dot: #B5DCFB; }
-  body.c-green  { --paper: #CFEFC9; --fold: #ABD9A4; --line: rgba(77,128,71,.28);  --dot: #C0E8B9; }
-  body.c-purple { --paper: #E7DAFF; --fold: #C8B4EF; --line: rgba(108,87,158,.28); --dot: #DCCBFB; }
+  /* 無印色票：象牙白 / 純白 / 霧灰 / 灰綠 / 牛皮 */
+  body.c-ivory { --paper: #F5F1E6; --fold: #DFD8C6; --line: rgba(118,112,96,.32); --dot: #F0EBDD; }
+  body.c-white { --paper: #FAFAF6; --fold: #E6E4DC; --line: rgba(120,118,108,.26); --dot: #F4F4EE; }
+  body.c-gray  { --paper: #E9E7E0; --fold: #D2CFC5; --line: rgba(108,106,98,.30);  --dot: #E2E0D8; }
+  body.c-sage  { --paper: #E0E3D6; --fold: #C8CCBA; --line: rgba(96,104,84,.30);   --dot: #D8DCCB; }
+  body.c-kraft { --paper: #CDB88E; --fold: #B29D72; --line: rgba(88,72,44,.38);    --dot: #C5B083; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    /* 紙的光影：左上受光、右下微暗，墊在底色上 */
+    /* 紙的光影：左上受光、右下微暗 */
     background:
-      linear-gradient(155deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 42%),
-      linear-gradient(335deg, rgba(92,74,28,.08) 0%, rgba(0,0,0,0) 38%),
+      linear-gradient(155deg, rgba(255,255,255,.40) 0%, rgba(255,255,255,0) 42%),
+      linear-gradient(335deg, rgba(70,60,40,.07) 0%, rgba(0,0,0,0) 38%),
       var(--paper);
-    color: rgba(56,49,38,.92);
+    color: rgba(62,58,51,.94);
     display: flex; flex-direction: column;
-    /* 紙的厚度感：四邊極淡內光暈＋底部微翹的暗緣 */
     border-radius: 2px;
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.4),
-      inset 0 -16px 20px -16px rgba(0,0,0,.20),
+      inset 0 -16px 20px -16px rgba(0,0,0,.18),
       inset 1px 0 0 rgba(255,255,255,.18),
       inset -1px 0 0 rgba(0,0,0,.05);
   }
-  /* 紙纖維顆粒（固定層、不擋滑鼠） */
+  /* 紙纖維顆粒 */
   #grain {
     position: fixed; inset: 0; z-index: 8; pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     mix-blend-mode: multiply;
   }
-  /* 右下捲角的落影（在折角下面） */
+  /* 右下捲角落影＋折角 */
   body::before {
     content: ""; position: fixed; right: 0; bottom: 0;
     width: 34px; height: 34px; pointer-events: none;
-    background: radial-gradient(circle at 100% 100%, rgba(0,0,0,.20), transparent 62%);
+    background: radial-gradient(circle at 100% 100%, rgba(0,0,0,.18), transparent 62%);
   }
-  /* 右下折角 */
   body::after {
     content: ""; position: fixed; right: 0; bottom: 0;
     width: 24px; height: 24px; pointer-events: none;
@@ -51,11 +50,10 @@
   .bar {
     height: 34px; flex: 0 0 34px; position: relative;
     -webkit-app-region: drag; user-select: none;
-    /* 便利貼頂端的背膠條：略深一階＋底緣一絲反光 */
-    background: linear-gradient(to bottom, rgba(86,68,22,.10), rgba(86,68,22,.04) 70%, rgba(86,68,22,0));
-    box-shadow: 0 1px 0 rgba(255,255,255,.35);
+    background: linear-gradient(to bottom, rgba(60,50,30,.08), rgba(60,50,30,.03) 70%, rgba(60,50,30,0));
+    box-shadow: 0 1px 0 rgba(255,255,255,.3);
   }
-  /* 紅色圖釘：釘上=壓在紙上；拔起=往上提、傾斜、影子拉遠 */
+  /* 紅色圖釘 */
   #pin {
     position: absolute; left: 50%; top: 1px;
     transform: translateX(-50%) translateY(0) rotate(0deg);
@@ -70,7 +68,6 @@
     transform: translateX(-58%) translateY(-9px) rotate(-24deg);
     filter: grayscale(.45) opacity(.85) drop-shadow(4px 11px 5px rgba(0,0,0,.22));
   }
-  /* 拔起後紙上留一個小針孔 */
   #pinhole {
     position: absolute; left: 50%; top: 26px; transform: translateX(-50%);
     width: 4px; height: 4px; border-radius: 50%;
@@ -87,8 +84,8 @@
   #modeSel {
     position: absolute; left: 8px; top: 7px;
     -webkit-app-region: no-drag;
-    border: none; background: rgba(255,255,255,.35); border-radius: 5px;
-    font-size: 11px; font-family: inherit; color: #6B5F4A; padding: 2px 3px; outline: none;
+    border: none; background: rgba(255,255,255,.4); border-radius: 4px;
+    font-size: 11px; font-family: inherit; color: #6B665A; padding: 2px 3px; outline: none;
   }
   .btns {
     position: absolute; right: 5px; top: 4px; display: flex; gap: 1px;
@@ -96,32 +93,31 @@
   }
   .btns button {
     width: 25px; height: 25px; border: none; background: transparent;
-    color: #6B5F4A; font-size: 14px; line-height: 1; cursor: pointer; border-radius: 5px;
+    color: #6B665A; font-size: 14px; line-height: 1; cursor: pointer; border-radius: 4px;
   }
-  .btns button:hover { background: rgba(0,0,0,.08); color: #3B3328; }
+  .btns button:hover { background: rgba(0,0,0,.08); color: #3B382F; }
 
-  /* 底色選擇圓點 */
   #dots {
     position: absolute; left: 10px; top: 36px; z-index: 5;
     display: flex; gap: 6px; -webkit-app-region: no-drag;
   }
   #dots span {
     width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
-    border: 1.5px solid rgba(0,0,0,.18);
+    border: 1px solid rgba(0,0,0,.22);
   }
-  #dots span.cur { border-color: rgba(0,0,0,.55); }
+  #dots span.cur { border-color: rgba(0,0,0,.6); }
 
   #content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   body.collapsed #content { display: none; }
 
-  /* 內文字體：預設微軟正黑（Mac 用蘋方）；大小/斜體/字型由每張便條自己的設定控制 */
+  /* 文字設定 */
   :root { --note-fs: 17px; --note-lh: 28px; --note-style: normal; --note-font: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", -apple-system, sans-serif; }
   textarea, .item input {
     font-family: var(--note-font);
     font-size: var(--note-fs);
     font-style: var(--note-style);
   }
-  textarea {
+  textarea#text {
     flex: 1; border: none; outline: none; resize: none;
     background: transparent; padding: 10px 14px 24px;
     line-height: var(--note-lh); color: inherit;
@@ -133,65 +129,61 @@
     background-origin: content-box;
   }
 
-  /* 文字工具列（手寫模式以外顯示） */
   #textTools {
     position: absolute; right: 8px; top: 36px; z-index: 6;
     display: flex; gap: 3px; -webkit-app-region: no-drag;
   }
   #textTools button, #textTools select {
-    border: 1px solid rgba(0,0,0,.22); background: rgba(255,255,255,.45);
-    border-radius: 5px; font-size: 11px; font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
-    color: rgba(0,0,0,.6); padding: 2px 5px; cursor: pointer; outline: none;
+    border: 1px solid rgba(0,0,0,.2); background: rgba(255,255,255,.45);
+    border-radius: 4px; font-size: 11px; font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
+    color: rgba(0,0,0,.55); padding: 2px 5px; cursor: pointer; outline: none;
   }
-  #textTools button.on { background: rgba(0,0,0,.65); color: #FFF; border-color: transparent; }
+  #textTools button.on { background: rgba(0,0,0,.62); color: #FFF; border-color: transparent; }
   #textTools #italicBtn { font-style: italic; font-weight: 600; width: 24px; }
 
-  /* 鬧鈴設定小視窗 */
+  /* 鬧鈴 */
   #alarmPop {
     position: absolute; right: 6px; top: 64px; z-index: 20;
-    background: #FFFDF6; border: 1px solid rgba(0,0,0,.22); border-radius: 8px;
-    padding: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.22); display: none;
-    font-size: 12px; color: #4B4237;
+    background: #FBFAF4; border: 1px solid rgba(0,0,0,.2); border-radius: 6px;
+    padding: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.2); display: none;
+    font-size: 12px; color: #3F3B33;
   }
   #alarmPop input { font-family: inherit; font-size: 12px; margin-bottom: 8px; display: block; }
   #alarmPop .row { display: flex; gap: 6px; justify-content: flex-end; }
   #alarmPop .row button {
-    border: 1px solid rgba(0,0,0,.25); background: #FFF; border-radius: 5px;
+    border: 1px solid rgba(0,0,0,.22); background: #FFF; border-radius: 4px;
     font-size: 11px; font-family: inherit; padding: 3px 10px; cursor: pointer;
   }
-  #alarmPop .row button.main { background: #4B4237; color: #FCE98C; border-color: transparent; }
-  /* 鬧鈴已設定的小牌子 */
+  #alarmPop .row button.main { background: #3F3B33; color: #F5F1E6; border-color: transparent; }
   #alarmChip {
     position: absolute; left: 10px; bottom: 7px; z-index: 7;
-    font-size: 11px; color: rgba(0,0,0,.6); background: rgba(255,255,255,.55);
-    border-radius: 4px; padding: 1px 7px; display: none; pointer-events: none;
+    font-size: 11px; color: rgba(0,0,0,.55); background: rgba(255,255,255,.5);
+    border-radius: 3px; padding: 1px 7px; display: none; pointer-events: none;
   }
 
-  /* 圖片（拍立得式相紙，可貼上/拖入；滑過 −＋ 調大小、點圖放大看） */
+  /* 圖片相紙 */
   #imgs {
     display: none; flex-wrap: wrap; gap: 10px; align-items: flex-start;
     padding: 10px 12px 2px; max-height: 65%; overflow-y: auto;
   }
   #imgs .ph {
     position: relative; background: #FFF; padding: 4px 4px 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.28); transform: rotate(-1.6deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25); transform: rotate(-1.6deg);
   }
   #imgs .ph:nth-child(even) { transform: rotate(1.4deg); }
   #imgs .ph img { display: block; width: 100%; height: auto; cursor: zoom-in; }
   #imgs .ph button {
     position: absolute; top: -7px; width: 18px; height: 18px;
-    border-radius: 50%; border: none; background: rgba(0,0,0,.7); color: #FFF;
+    border-radius: 50%; border: none; background: rgba(0,0,0,.68); color: #FFF;
     font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; padding: 0;
   }
   #imgs .ph:hover button { opacity: 1; }
   #imgs .ph .szm { left: -7px; }
   #imgs .ph .szp { left: 15px; }
   #imgs .ph .rmi { right: -7px; }
-
-  /* 點圖放大檢視 */
   #lightbox {
     position: fixed; inset: 0; z-index: 40;
-    background: rgba(30,26,18,.9); display: none;
+    background: rgba(40,37,30,.9); display: none;
     align-items: center; justify-content: center; cursor: zoom-out;
   }
   #lightbox img {
@@ -200,7 +192,7 @@
     box-shadow: 0 10px 40px rgba(0,0,0,.5);
   }
 
-  /* 手寫模式 */
+  /* 手寫 */
   #draw { flex: 1; position: relative; display: none; }
   #draw canvas { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
   #drawTools {
@@ -208,54 +200,160 @@
     display: none; gap: 4px; -webkit-app-region: no-drag;
   }
   #drawTools button {
-    border: 1px solid rgba(0,0,0,.22); background: rgba(255,255,255,.45);
-    border-radius: 5px; font-size: 11px; font-family: inherit;
-    color: rgba(0,0,0,.6); padding: 2px 8px; cursor: pointer;
+    border: 1px solid rgba(0,0,0,.2); background: rgba(255,255,255,.45);
+    border-radius: 4px; font-size: 11px; font-family: inherit;
+    color: rgba(0,0,0,.55); padding: 2px 8px; cursor: pointer;
   }
-  #drawTools button.on { background: rgba(0,0,0,.65); color: #FFF; border-color: transparent; }
+  #drawTools button.on { background: rgba(0,0,0,.62); color: #FFF; border-color: transparent; }
 
-  /* 清單模式 */
-  #todo { flex: 1; overflow-y: auto; padding: 8px 10px 24px; display: none; }
-  .item { display: flex; align-items: center; min-height: 28px; gap: 8px; }
-  .tick {
-    width: 15px; height: 15px; flex: 0 0 15px; cursor: pointer; position: relative;
-    border: 1.5px solid rgba(0,0,0,.35); border-radius: 4px; background: rgba(255,255,255,.4);
+  /* 列表（無印 checklist：每行細灰線＋方框） */
+  #todo { flex: 1; overflow-y: auto; padding: 6px 14px 26px; display: none; }
+  .item {
+    display: flex; align-items: center; min-height: 36px; gap: 10px;
+    border-bottom: 1px solid var(--line); padding: 3px 2px;
   }
-  .item.done .tick { background: #7A8C5E; border-color: #7A8C5E; }
+  .tick {
+    width: 14px; height: 14px; flex: 0 0 14px; cursor: pointer; position: relative;
+    border: 1.2px solid rgba(0,0,0,.42); border-radius: 1px; background: transparent;
+  }
   .item.done .tick::after {
-    content: ""; position: absolute; left: 3px; top: 1px;
+    content: ""; position: absolute; left: 2.5px; top: -1px;
     width: 6px; height: 9px;
-    border: solid #FFF; border-width: 0 2px 2px 0; transform: rotate(40deg);
+    border: solid rgba(0,0,0,.55); border-width: 0 1.6px 1.6px 0; transform: rotate(40deg);
   }
   .item input {
     flex: 1; border: none; background: transparent; outline: none;
-    font-size: 17px; color: inherit; min-width: 0;
+    color: inherit; min-width: 0;
   }
-  .item.done input { text-decoration: line-through; color: rgba(0,0,0,.35); }
+  .item.done input { text-decoration: line-through; color: rgba(0,0,0,.32); }
   .item .rm {
-    width: 20px; height: 20px; border: none; background: transparent; border-radius: 4px;
+    width: 20px; height: 20px; border: none; background: transparent; border-radius: 3px;
     color: rgba(0,0,0,.3); font-size: 13px; cursor: pointer; opacity: 0;
   }
   .item:hover .rm { opacity: 1; }
-  .item .rm:hover { background: rgba(0,0,0,.08); color: #3B3328; }
-  /* 新增項目列：虛線框＋明顯的＋號，點了就能打字 */
+  .item .rm:hover { background: rgba(0,0,0,.08); color: #3B382F; }
   .item.ghost .tick {
     border-style: dashed; border-color: rgba(0,0,0,.35); background: transparent;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; line-height: 1; color: rgba(0,0,0,.5); cursor: text;
+    font-size: 12px; line-height: 1; color: rgba(0,0,0,.45); cursor: text;
     font-family: -apple-system, "Segoe UI", sans-serif;
   }
-  .item.ghost input::placeholder { color: rgba(0,0,0,.32); }
+  .item.ghost input::placeholder { color: rgba(0,0,0,.3); }
+
+  /* 無印小字母刻印標籤（週記/月記共用） */
+  .muji-label {
+    font-size: 9px; letter-spacing: 2px; color: rgba(0,0,0,.48);
+    font-family: "Segoe UI", -apple-system, sans-serif; text-transform: uppercase;
+  }
+  .muji-label::before {
+    content: ""; display: block; width: 14px;
+    border-top: 1px solid rgba(0,0,0,.45); margin-bottom: 2px;
+  }
+
+  /* 週記（MONTH＋MON~SUN 橫帶） */
+  #week { flex: 1; display: none; flex-direction: column; padding: 4px 14px 26px; min-height: 0; }
+  #week .wrow {
+    flex: 1; min-height: 0; border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; padding: 3px 0 2px;
+  }
+  #week .wrow.whead { flex: 0 0 34px; }
+  #week .wrow:last-child { border-bottom: none; }
+  #week textarea.wta {
+    flex: 1; border: none; outline: none; resize: none; background: transparent;
+    font-size: calc(var(--note-fs) * .78); line-height: 1.5; color: inherit;
+    padding: 1px 0 2px; min-height: 0;
+  }
+
+  /* 月記（月曆格） */
+  #month { flex: 1; display: none; flex-direction: column; padding: 4px 12px 26px; min-height: 0; }
+  #month .mhead { flex: 0 0 26px; display: flex; align-items: flex-end; gap: 10px; padding-bottom: 3px; }
+  #month .mhead .ym { font-size: 12px; color: rgba(0,0,0,.6); letter-spacing: 1px; }
+  #month .mhead button {
+    border: none; background: transparent; color: rgba(0,0,0,.45);
+    font-size: 13px; cursor: pointer; padding: 0 4px; -webkit-app-region: no-drag;
+  }
+  #month .mhead button:hover { color: #3B382F; }
+  #month .mwk {
+    flex: 0 0 14px; display: grid; grid-template-columns: repeat(7, 1fr);
+    font-size: 8px; letter-spacing: 1px; color: rgba(0,0,0,.42);
+    font-family: "Segoe UI", sans-serif;
+  }
+  #month .mwk span { padding-left: 3px; }
+  #mgrid {
+    flex: 1; display: grid; grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr; min-height: 0;
+    border-top: 1px solid var(--line); border-left: 1px solid var(--line);
+  }
+  .mcell {
+    position: relative; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    min-height: 0; overflow: hidden;
+  }
+  .mcell .mday {
+    position: absolute; top: 0; left: 0;
+    font-size: 8px; color: rgba(0,0,0,.5); line-height: 1.3;
+    border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 0 3px; background: rgba(255,255,255,.18);
+  }
+  .mcell .mtext {
+    position: absolute; inset: 11px 1px 1px 2px; outline: none;
+    font-size: 9px; line-height: 1.35; color: inherit; overflow: hidden;
+    font-family: var(--note-font);
+  }
+  .mcell.today .mday { background: rgba(0,0,0,.6); color: #FFF; border-color: transparent; }
+
+  /* 單字小卡（鐵環活頁卡） */
+  #cards { flex: 1; display: none; flex-direction: column; align-items: center; min-height: 0; padding: 6px 14px 24px; }
+  #cardWrap { position: relative; flex: 1; width: 78%; min-height: 0; display: flex; margin-top: 16px; }
+  /* 疊在後面的卡 */
+  #cardWrap::before, #cardWrap::after {
+    content: ""; position: absolute; inset: 0; background: #FCFCF9;
+    border: 1px solid rgba(0,0,0,.12); border-radius: 3px; z-index: 0;
+  }
+  #cardWrap::before { transform: rotate(1.6deg) translate(3px, 2px); }
+  #cardWrap::after  { transform: rotate(-1.2deg) translate(-2px, 3px); }
+  .vcard {
+    position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column;
+    background: #FFFFFD; border: 1px solid rgba(0,0,0,.15); border-radius: 3px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.16);
+  }
+  /* 打孔＋鐵環 */
+  #ring { position: absolute; left: 50%; top: -24px; transform: translateX(-50%); z-index: 2; pointer-events: none; }
+  .vcard .hole {
+    position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--paper); box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+  }
+  .vcard .side-label {
+    margin-top: 26px; text-align: center;
+    font-size: 8px; letter-spacing: 3px; color: rgba(0,0,0,.35);
+    font-family: "Segoe UI", sans-serif;
+  }
+  .vcard textarea {
+    flex: 1; border: none; outline: none; resize: none; background: transparent;
+    text-align: center; padding: 10px 12px 16px;
+    font-size: calc(var(--note-fs) * 1.1); line-height: 1.6; color: inherit;
+  }
+  #cardBar { flex: 0 0 30px; display: flex; align-items: center; gap: 6px; margin-top: 8px; -webkit-app-region: no-drag; }
+  #cardBar button {
+    border: 1px solid rgba(0,0,0,.2); background: rgba(255,255,255,.5);
+    border-radius: 4px; font-size: 11px; font-family: inherit;
+    color: rgba(0,0,0,.55); padding: 2px 8px; cursor: pointer;
+  }
+  #cardBar button:hover { color: #3B382F; border-color: rgba(0,0,0,.4); }
+  #cardBar .cnt { font-size: 10px; color: rgba(0,0,0,.45); letter-spacing: 1px; min-width: 34px; text-align: center; }
 </style>
 </head>
-<body class="c-yellow">
+<body class="c-ivory">
   <div class="bar">
     <div id="pinhole"></div>
-    <select id="modeSel" class="ctrl" title="便條紙樣式">
+    <select id="modeSel" class="ctrl" title="紙的樣式">
       <option value="plain">空白</option>
       <option value="ruled">橫線</option>
-      <option value="todo">清單</option>
+      <option value="todo">列表</option>
       <option value="draw">手寫</option>
+      <option value="week">週記</option>
+      <option value="month">月記</option>
+      <option value="cards">單字卡</option>
     </select>
     <svg id="pin" viewBox="0 0 26 30" title="點一下拔起/釘上">
       <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
@@ -302,6 +400,40 @@
     <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
     <div id="todo"></div>
     <div id="draw"><canvas id="cv"></canvas></div>
+    <div id="week"></div>
+    <div id="month">
+      <div class="mhead">
+        <span class="muji-label" style="padding-bottom:1px">Month</span>
+        <span class="ym" id="ymText"></span>
+        <span style="margin-left:auto">
+          <button id="mPrev" title="上個月">‹</button>
+          <button id="mNext" title="下個月">›</button>
+        </span>
+      </div>
+      <div class="mwk"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
+      <div id="mgrid"></div>
+    </div>
+    <div id="cards">
+      <div id="cardWrap">
+        <svg id="ring" width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="14" fill="none" stroke="#A9ABAD" stroke-width="3.4"/>
+          <circle cx="22" cy="22" r="14" fill="none" stroke="#D8DADC" stroke-width="1.2" stroke-dasharray="20 70"/>
+        </svg>
+        <div class="vcard">
+          <div class="hole"></div>
+          <div class="side-label" id="sideLabel">FRONT</div>
+          <textarea id="cardText" placeholder="正面寫單字…" spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div id="cardBar" class="ctrl">
+        <button id="cPrev" title="上一張">‹</button>
+        <span class="cnt" id="cCount">1/1</span>
+        <button id="cNext" title="下一張">›</button>
+        <button id="cFlip" title="翻到背面">翻面</button>
+        <button id="cAdd" title="加一張卡">＋</button>
+        <button id="cDel" title="刪這張卡">×</button>
+      </div>
+    </div>
   </div>
 <script>
   const { ipcRenderer } = require('electron')
@@ -314,28 +446,38 @@
   const foldBtn = document.getElementById('fold')
   const dots = document.getElementById('dots')
 
-  const COLORS = ['yellow', 'pink', 'blue', 'green', 'purple']
+  // 無印色票（舊版可愛色自動對應）
+  const COLORS = ['ivory', 'white', 'gray', 'sage', 'kraft']
+  const LEGACY = { yellow: 'ivory', pink: 'white', blue: 'gray', green: 'sage', purple: 'kraft' }
+  const DOT_BG = { ivory: '#F0EBDD', white: '#F4F4EE', gray: '#E2E0D8', sage: '#D8DCCB', kraft: '#C5B083' }
+
   let mode = note.mode || 'plain'
   let items = note.items || []
-  let color = COLORS.includes(note.color) ? note.color : 'yellow'
+  let color = note.color || 'ivory'
+  if (LEGACY[color]) color = LEGACY[color]
+  if (!COLORS.includes(color)) color = 'ivory'
+  let drawing = note.drawing || null
+  let fontSize = note.fontSize || 17
+  let italic = !!note.italic
+  let font = note.font || 'default'
+  let images = (note.images || []).map(x => typeof x === 'string' ? { src: x, w: 115 } : x)
+  let alarm = note.alarm || null
+  let week = note.week || {}
+  let monthData = note.month || { ym: '', entries: {} }
+  let cards = note.cards && note.cards.length ? note.cards : [{ front: '', back: '' }]
+  let cardIndex = Math.min(note.cardIndex || 0, cards.length - 1)
+  let cardSide = 'front'
 
   ta.value = note.content || ''
   modeSel.value = mode
   if (note.collapsed) { document.body.classList.add('collapsed'); foldBtn.textContent = '▾' }
   if (note.pinned === false) document.body.classList.add('unpinned')
 
-  let drawing = note.drawing || null
-  let fontSize = note.fontSize || 17
-  let italic = !!note.italic
-  let font = note.font || 'default'
-  // 舊版圖片是純網址字串，轉成帶寬度的物件
-  let images = (note.images || []).map(x => typeof x === 'string' ? { src: x, w: 115 } : x)
-  let alarm = note.alarm || null
-
   let timer
   const save = () => ipcRenderer.send('set-note', id, {
     content: ta.value, mode, items, color, drawing,
-    fontSize, italic, font, images, alarm
+    fontSize, italic, font, images, alarm,
+    week, month: monthData, cards, cardIndex
   })
   const saveSoon = () => { clearTimeout(timer); timer = setTimeout(save, 300) }
 
@@ -361,6 +503,21 @@
   italicBtn.onclick = () => { italic = !italic; applyTextStyle(); save() }
   fontSel.onchange = () => { font = fontSel.value; applyTextStyle(); save() }
   applyTextStyle()
+
+  // ---------- 底色 ----------
+  function applyColor() {
+    document.body.className = document.body.className.replace(/c-\w+/, 'c-' + color)
+    dots.querySelectorAll('span').forEach(d => d.classList.toggle('cur', d.dataset.c === color))
+  }
+  COLORS.forEach(c => {
+    const d = document.createElement('span')
+    d.dataset.c = c
+    d.style.background = DOT_BG[c]
+    d.title = { ivory: '象牙白', white: '純白', gray: '霧灰', sage: '灰綠', kraft: '牛皮紙' }[c]
+    d.onclick = () => { color = c; applyColor(); save() }
+    dots.appendChild(d)
+  })
+  applyColor()
 
   // ---------- 鬧鈴 ----------
   const alarmPop = document.getElementById('alarmPop')
@@ -398,11 +555,12 @@
   ipcRenderer.on('alarm-updated', (e, iso) => { alarm = iso; renderAlarmChip() })
   renderAlarmChip()
 
-  // ---------- 圖片（貼上 / 拖入） ----------
+  // ---------- 圖片 ----------
   const imgs = document.getElementById('imgs')
   const lightbox = document.getElementById('lightbox')
   const lightboxImg = lightbox.querySelector('img')
   lightbox.onclick = () => { lightbox.style.display = 'none' }
+  const IMG_MODES = ['plain', 'ruled', 'todo']
 
   function renderImgs() {
     imgs.innerHTML = ''
@@ -425,7 +583,7 @@
       )
       imgs.appendChild(ph)
     })
-    imgs.style.display = (images.length && mode !== 'draw') ? 'flex' : 'none'
+    imgs.style.display = (images.length && IMG_MODES.includes(mode)) ? 'flex' : 'none'
   }
   function addImageFile(file) {
     const img = new Image()
@@ -454,39 +612,33 @@
       if (f.type.startsWith('image/')) addImageFile(f)
     }
   })
-  renderImgs()
 
-  function applyColor() {
-    document.body.className = document.body.className.replace(/c-\w+/, 'c-' + color)
-    dots.querySelectorAll('span').forEach(d => d.classList.toggle('cur', d.dataset.c === color))
-  }
-
-  COLORS.forEach(c => {
-    const d = document.createElement('span')
-    d.dataset.c = c
-    d.style.background = {
-      yellow: '#F7DD6E', pink: '#FFC2D1', blue: '#B5DCFB', green: '#C0E8B9', purple: '#DCCBFB'
-    }[c]
-    d.onclick = () => { color = c; applyColor(); save() }
-    dots.appendChild(d)
-  })
-  applyColor()
+  // ---------- 模式切換 ----------
+  const draw = document.getElementById('draw')
+  const drawTools = document.getElementById('drawTools')
+  const weekEl = document.getElementById('week')
+  const monthEl = document.getElementById('month')
+  const cardsEl = document.getElementById('cards')
 
   function renderMode() {
-    ta.style.display = (mode === 'todo' || mode === 'draw') ? 'none' : ''
+    ta.style.display = (mode === 'plain' || mode === 'ruled') ? '' : 'none'
     todo.style.display = (mode === 'todo') ? 'block' : 'none'
     draw.style.display = (mode === 'draw') ? 'block' : 'none'
+    weekEl.style.display = (mode === 'week') ? 'flex' : 'none'
+    monthEl.style.display = (mode === 'month') ? 'flex' : 'none'
+    cardsEl.style.display = (mode === 'cards') ? 'flex' : 'none'
     drawTools.style.display = (mode === 'draw') ? 'flex' : 'none'
     document.getElementById('textTools').style.display = (mode === 'draw') ? 'none' : 'flex'
     ta.classList.toggle('ruled', mode === 'ruled')
     if (mode === 'todo') renderTodo()
     if (mode === 'draw') requestAnimationFrame(resizeCanvas)
+    if (mode === 'week') renderWeek()
+    if (mode === 'month') renderMonth()
+    if (mode === 'cards') renderCard()
     renderImgs()
   }
 
   // ---------- 手寫 ----------
-  const draw = document.getElementById('draw')
-  const drawTools = document.getElementById('drawTools')
   const cv = document.getElementById('cv')
   const ctx = cv.getContext('2d')
   const penBtn = document.getElementById('penBtn')
@@ -519,7 +671,7 @@
   let pen = false, last = null
   function strokeTo(x, y) {
     ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over'
-    ctx.strokeStyle = 'rgba(52,45,34,.95)'
+    ctx.strokeStyle = 'rgba(58,53,44,.95)'
     ctx.lineWidth = erasing ? 18 : 2.4
     ctx.beginPath()
     ctx.moveTo(last[0], last[1])
@@ -555,6 +707,7 @@
     }
   }
 
+  // ---------- 列表 ----------
   function renderTodo(focusIndex) {
     todo.innerHTML = ''
     items.forEach((it, i) => {
@@ -583,7 +736,6 @@
       row.append(tick, inp, rm)
       todo.appendChild(row)
     })
-    // 最後固定一行「新增項目」
     const ghost = document.createElement('div')
     ghost.className = 'item ghost'
     const gtick = document.createElement('div'); gtick.className = 'tick'
@@ -605,8 +757,6 @@
       todo.children[focusIndex].querySelector('input').focus()
     }
   }
-
-  // 點清單空白處＝直接開始新增
   todo.addEventListener('click', (e) => {
     if (e.target === todo) {
       const gi = todo.querySelector('.ghost input')
@@ -614,11 +764,121 @@
     }
   })
 
+  // ---------- 週記 ----------
+  const WEEK_ROWS = [
+    ['month', 'MONTH'], ['mon', 'MON'], ['tue', 'TUE'], ['wed', 'WED'],
+    ['thu', 'THU'], ['fri', 'FRI'], ['sat', 'SAT'], ['sun', 'SUN']
+  ]
+  let weekBuilt = false
+  function renderWeek() {
+    if (weekBuilt) return
+    weekBuilt = true
+    WEEK_ROWS.forEach(([key, label]) => {
+      const row = document.createElement('div')
+      row.className = 'wrow' + (key === 'month' ? ' whead' : '')
+      const lab = document.createElement('div')
+      lab.className = 'muji-label'
+      lab.textContent = label
+      const t = document.createElement('textarea')
+      t.className = 'wta'
+      t.spellcheck = false
+      t.value = week[key] || ''
+      t.rows = 1
+      t.addEventListener('input', () => { week[key] = t.value; saveSoon() })
+      row.append(lab, t)
+      weekEl.appendChild(row)
+    })
+  }
+
+  // ---------- 月記 ----------
+  const mgrid = document.getElementById('mgrid')
+  const ymText = document.getElementById('ymText')
+  function curYm() {
+    const d = new Date()
+    return `${d.getFullYear()}-${two(d.getMonth() + 1)}`
+  }
+  function renderMonth() {
+    if (!monthData.ym) monthData.ym = curYm()
+    if (!monthData.entries) monthData.entries = {}
+    const ym = monthData.ym
+    if (!monthData.entries[ym]) monthData.entries[ym] = {}
+    const ent = monthData.entries[ym]
+    const [y, m] = ym.split('-').map(Number)
+    ymText.textContent = `${y}.${m}`
+    mgrid.innerHTML = ''
+    const first = new Date(y, m - 1, 1)
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const lead = (first.getDay() + 6) % 7  // 週一起頭
+    const today = new Date()
+    const isThisMonth = today.getFullYear() === y && today.getMonth() === m - 1
+    const cells = Math.ceil((lead + daysInMonth) / 7) * 7
+    for (let i = 0; i < cells; i++) {
+      const day = i - lead + 1
+      const cell = document.createElement('div')
+      cell.className = 'mcell'
+      if (day >= 1 && day <= daysInMonth) {
+        if (isThisMonth && day === today.getDate()) cell.classList.add('today')
+        const dn = document.createElement('div')
+        dn.className = 'mday'; dn.textContent = day
+        const tx = document.createElement('div')
+        tx.className = 'mtext'; tx.contentEditable = 'true'
+        tx.textContent = ent[day] || ''
+        tx.addEventListener('input', () => { ent[day] = tx.textContent; saveSoon() })
+        cell.append(dn, tx)
+      }
+      mgrid.appendChild(cell)
+    }
+  }
+  document.getElementById('mPrev').onclick = () => {
+    const [y, m] = monthData.ym.split('-').map(Number)
+    const d = new Date(y, m - 2, 1)
+    monthData.ym = `${d.getFullYear()}-${two(d.getMonth() + 1)}`
+    renderMonth(); save()
+  }
+  document.getElementById('mNext').onclick = () => {
+    const [y, m] = monthData.ym.split('-').map(Number)
+    const d = new Date(y, m, 1)
+    monthData.ym = `${d.getFullYear()}-${two(d.getMonth() + 1)}`
+    renderMonth(); save()
+  }
+
+  // ---------- 單字小卡 ----------
+  const cardText = document.getElementById('cardText')
+  const sideLabel = document.getElementById('sideLabel')
+  const cCount = document.getElementById('cCount')
+  function renderCard() {
+    if (cardIndex < 0) cardIndex = 0
+    if (cardIndex > cards.length - 1) cardIndex = cards.length - 1
+    const c = cards[cardIndex]
+    cardText.value = c[cardSide] || ''
+    cardText.placeholder = cardSide === 'front' ? '正面寫單字…' : '背面寫意思…'
+    sideLabel.textContent = cardSide.toUpperCase()
+    cCount.textContent = `${cardIndex + 1}/${cards.length}`
+  }
+  cardText.addEventListener('input', () => { cards[cardIndex][cardSide] = cardText.value; saveSoon() })
+  document.getElementById('cFlip').onclick = () => { cardSide = cardSide === 'front' ? 'back' : 'front'; renderCard() }
+  document.getElementById('cPrev').onclick = () => { if (cardIndex > 0) { cardIndex--; cardSide = 'front'; renderCard(); save() } }
+  document.getElementById('cNext').onclick = () => { if (cardIndex < cards.length - 1) { cardIndex++; cardSide = 'front'; renderCard(); save() } }
+  document.getElementById('cAdd').onclick = () => {
+    cards.splice(cardIndex + 1, 0, { front: '', back: '' })
+    cardIndex++; cardSide = 'front'; renderCard(); save()
+    cardText.focus()
+  }
+  document.getElementById('cDel').onclick = () => {
+    const c = cards[cardIndex]
+    const empty = !(c.front || '').trim() && !(c.back || '').trim()
+    if (!empty && !confirm('刪掉這張卡？')) return
+    cards.splice(cardIndex, 1)
+    if (!cards.length) cards.push({ front: '', back: '' })
+    cardSide = 'front'; renderCard(); save()
+  }
+
+  // ---------- 共用 ----------
   modeSel.onchange = () => {
     const next = modeSel.value
-    if (next === 'todo' && mode !== 'todo') {
+    if (next === 'todo' && mode !== 'todo' && !items.length) {
       items = ta.value.split('\n').filter(l => l.trim()).map(t => ({ text: t, done: false }))
-    } else if (next !== 'todo' && mode === 'todo') {
+    } else if (next !== 'todo' && mode === 'todo' && !ta.value.trim()) {
       ta.value = items.filter(i => i.text.trim()).map(i => i.text).join('\n')
     }
     mode = next
@@ -638,16 +898,19 @@
 
   document.getElementById('add').onclick = () => ipcRenderer.send('new-note')
   document.getElementById('del').onclick = () => {
-    const empty = mode === 'todo' ? !items.some(i => i.text.trim())
+    const empty =
+      mode === 'todo' ? !items.some(i => i.text.trim())
       : mode === 'draw' ? !drawing
+      : mode === 'week' ? !Object.values(week).some(v => v && v.trim())
+      : mode === 'month' ? !Object.values(monthData.entries || {}).some(e => Object.values(e).some(v => v && v.trim()))
+      : mode === 'cards' ? !cards.some(c => (c.front || '').trim() || (c.back || '').trim())
       : ta.value.trim() === ''
     if (empty || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
   }
 
-  // selftest 截圖用：示範時固定顯示工具列
+  // ---------- selftest 示範 ----------
   if (id && id.startsWith('demo')) document.body.classList.add('demo-show')
 
-  // selftest 截圖用：示範拍立得圖片
   if (id === 'demo1' && images.length === 0) {
     const c = document.createElement('canvas'); c.width = c.height = 160
     const g = c.getContext('2d')
@@ -664,10 +927,9 @@
     renderImgs()
   }
 
-  // selftest 截圖用：示範手寫筆跡
   if (id && id.startsWith('demo') && mode === 'draw' && !drawing) {
     setTimeout(() => {
-      ctx.strokeStyle = 'rgba(52,45,34,.95)'; ctx.lineWidth = 2.4
+      ctx.strokeStyle = 'rgba(58,53,44,.95)'; ctx.lineWidth = 2.4
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'
       ctx.beginPath(); ctx.moveTo(28, 64); ctx.bezierCurveTo(64, 18, 96, 104, 130, 58); ctx.bezierCurveTo(160, 22, 190, 96, 222, 56); ctx.stroke()
       ctx.beginPath(); ctx.arc(64, 132, 24, 0, Math.PI * 2); ctx.stroke()
