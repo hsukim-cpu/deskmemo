@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 42%),
+      #FCE98C;
+    color: #4B4237;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #E2CA61;
+  }
+  body::after {
+    content: ""; position: fixed; right: 0; bottom: 0;
+    width: 28px; height: 28px; pointer-events: none;
+    background: linear-gradient(to top left, #E2CA61 50%, transparent 50.5%);
+  }
+  #pin {
+    position: fixed; left: 50%; top: 6px; transform: translateX(-50%);
+    width: 28px; height: 32px;
+    filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
+    animation: ring .35s ease-in-out 6;
+  }
+  @keyframes ring {
+    0%, 100% { transform: translateX(-50%) rotate(0); }
+    25% { transform: translateX(-50%) rotate(-14deg); }
+    75% { transform: translateX(-50%) rotate(14deg); }
+  }
+  .card { text-align: center; padding: 24px; max-width: 92%; }
+  .title { font-size: 15px; letter-spacing: 3px; color: #C2452F; font-weight: 700; }
+  .text {
+    margin-top: 12px; font-size: 22px; font-weight: 700; line-height: 1.5;
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  }
+  .actions { margin-top: 24px; display: flex; gap: 12px; justify-content: center; }
+  button {
+    border: none; border-radius: 7px; padding: 10px 22px;
+    font-size: 14px; font-family: inherit; cursor: pointer; letter-spacing: 1px;
+  }
+  #ok { background: #4B4237; color: #FCE98C; font-weight: 700; }
+  #ok:hover { background: #5E5346; }
+  #snooze { background: transparent; color: rgba(0,0,0,.5); border: 1px solid rgba(0,0,0,.25); }
+  #snooze:hover { color: #4B4237; border-color: rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+  <svg id="pin" viewBox="0 0 26 30">
+    <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="13" cy="9" r="7.5" fill="#D8413C"/>
+    <circle cx="13" cy="9" r="7.5" fill="none" stroke="#B22F2B" stroke-width="1"/>
+    <circle cx="10.5" cy="6.5" r="2.4" fill="#F08A86"/>
+  </svg>
+  <div class="card">
+    <div class="title">時間到了</div>
+    <div class="text" id="text"></div>
+    <div class="actions">
+      <button id="ok">知道了</button>
+      <button id="snooze">10 分鐘後再提醒</button>
+    </div>
+  </div>
+<script>
+  const { ipcRenderer } = require('electron')
+  const q = new URLSearchParams(location.search)
+  const noteId = q.get('id')
+  document.getElementById('text').textContent = q.get('text') || '便利貼提醒'
+
+  document.getElementById('ok').onclick = () => window.close()
+  document.getElementById('snooze').onclick = () => {
+    ipcRenderer.send('alarm-snooze', noteId)
+    window.close()
+  }
+
+  // 鬧鈴聲：兩輪急促嗶聲
+  try {
+    const ctx = new AudioContext()
+    const beep = (t, f) => {
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.frequency.value = f
+      o.connect(g); g.connect(ctx.destination)
+      g.gain.setValueAtTime(0.3, ctx.currentTime + t)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.15)
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.17)
+    }
+    [0, 0.2, 0.4, 1.0, 1.2, 1.4].forEach((t, i) => beep(t, i % 2 ? 1175 : 880))
+  } catch (e) {}
+</script>
+</body>
+</html>

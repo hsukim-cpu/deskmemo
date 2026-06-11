@@ -1,10 +1,1 @@
 
-[24540:0611/184313.216:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[24540:0611/184313.216:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[24540:0611/184313.216:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[24540:0611/184313.223:ERROR:disk_cache.cc(208)] Unable to create cache
-[24540:0611/184313.223:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
-[24540:0611/184313.223:ERROR:disk_cache.cc(208)] Unable to create cache
-[24540:0611/184313.223:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
-[24540:0611/184313.223:ERROR:disk_cache.cc(208)] Unable to create cache
-[24540:0611/184313.223:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2

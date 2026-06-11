@@ -127,6 +127,11 @@ ipcMain.on('set-note', (e, id, payload) => {
   note.items = payload.items
   note.color = payload.color
   note.drawing = payload.drawing
+  note.fontSize = payload.fontSize
+  note.italic = payload.italic
+  note.font = payload.font
+  note.images = payload.images
+  note.alarm = payload.alarm
   saveNotes()
 })
 
@@ -169,6 +174,55 @@ ipcMain.on('delete-note', (e, id) => {
 })
 
 ipcMain.on('force-quit', () => { allowQuit = true; app.quit() })
+
+// ---------- 鬧鈴 ----------
+const noteExcerpt = (n) => {
+  if (n.mode === 'todo') {
+    const it = (n.items || []).find(i => i.text && i.text.trim() && !i.done)
+    if (it) return it.text
+  }
+  if (n.content && n.content.trim()) return n.content.trim().split('\n')[0]
+  if (n.mode === 'draw' && n.drawing) return '手寫便條'
+  return '便利貼提醒'
+}
+
+function showAlarm(id, text) {
+  const w = new BrowserWindow({
+    width: 440, height: 280,
+    frame: false, resizable: false, skipTaskbar: true, alwaysOnTop: true,
+    webPreferences: { nodeIntegration: true, contextIsolation: false }
+  })
+  w.setAlwaysOnTop(true, 'screen-saver')
+  w.center()
+  w.loadFile('alarm.html', { query: { id, text } })
+  return w
+}
+
+function checkAlarms() {
+  const now = Date.now()
+  let changed = false
+  for (const n of notes) {
+    if (n.alarm && Date.parse(n.alarm) <= now) {
+      const text = noteExcerpt(n)
+      n.alarm = null
+      changed = true
+      const win = noteWindows.get(n.id)
+      if (win) { win.show(); win.webContents.send('alarm-updated', null) }
+      shell.beep()
+      showAlarm(n.id, text)
+    }
+  }
+  if (changed) saveNotes()
+}
+
+ipcMain.on('alarm-snooze', (e, id) => {
+  const note = notes.find(n => n.id === id)
+  if (!note) return
+  note.alarm = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+  saveNotes()
+  const win = noteWindows.get(id)
+  if (win) win.webContents.send('alarm-updated', note.alarm)
+})
 
 // ---------- 警示邏輯 ----------
 function setupPowerWatch() {
@@ -231,7 +285,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function selftest() {
   notes = [
-    { id: 'demo1', mode: 'ruled', color: 'yellow', content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384' },
+    {
+      id: 'demo1', mode: 'ruled', color: 'yellow', height: 380, width: 300,
+      content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384',
+      alarm: new Date(Date.now() + 86400000).toISOString()
+    },
     {
       id: 'demo2', mode: 'todo', color: 'pink', content: '',
       items: [
@@ -255,6 +313,11 @@ async function selftest() {
   await sleep(1500)
   const img4 = await w.webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'warning-preview.png'), img4.toPNG())
+  w.close()
+  const aw = showAlarm('demo1', '下午寄出 #4384')
+  await sleep(1200)
+  const img5 = await aw.webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'alarm-preview.png'), img5.toPNG())
   app.exit(0)
 }
 
@@ -265,4 +328,7 @@ app.whenReady().then(() => {
   setupPowerWatch()
   if (notes.length) notes.forEach(createNoteWindow)
   else addNote()
+  // 鬧鈴排程：開機 5 秒後先補查一次（程式關著時錯過的也會響），之後每 20 秒查一次
+  setTimeout(checkAlarms, 5000)
+  setInterval(checkAlarms, 20000)
 })
