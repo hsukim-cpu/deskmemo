@@ -82,7 +82,7 @@
   body.unpinned #pinhole { opacity: 1; }
 
   .ctrl { opacity: 0; transition: opacity .15s; }
-  body:hover .ctrl { opacity: 1; }
+  body:hover .ctrl, body.demo-show .ctrl { opacity: 1; }
 
   #modeSel {
     position: absolute; left: 8px; top: 7px;
@@ -167,23 +167,38 @@
     border-radius: 4px; padding: 1px 7px; display: none; pointer-events: none;
   }
 
-  /* 圖片（拍立得式小相紙，可貼上/拖入） */
+  /* 圖片（拍立得式相紙，可貼上/拖入；滑過 −＋ 調大小、點圖放大看） */
   #imgs {
-    display: none; flex-wrap: wrap; gap: 10px;
-    padding: 10px 12px 2px; max-height: 150px; overflow-y: auto;
+    display: none; flex-wrap: wrap; gap: 10px; align-items: flex-start;
+    padding: 10px 12px 2px; max-height: 65%; overflow-y: auto;
   }
   #imgs .ph {
-    position: relative; background: #FFF; padding: 4px 4px 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.28); transform: rotate(-2deg);
+    position: relative; background: #FFF; padding: 4px 4px 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.28); transform: rotate(-1.6deg);
   }
-  #imgs .ph:nth-child(even) { transform: rotate(1.6deg); }
-  #imgs .ph img { display: block; width: 86px; height: 86px; object-fit: cover; }
-  #imgs .ph .rmi {
-    position: absolute; top: -7px; right: -7px; width: 18px; height: 18px;
+  #imgs .ph:nth-child(even) { transform: rotate(1.4deg); }
+  #imgs .ph img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+  #imgs .ph button {
+    position: absolute; top: -7px; width: 18px; height: 18px;
     border-radius: 50%; border: none; background: rgba(0,0,0,.7); color: #FFF;
-    font-size: 11px; line-height: 1; cursor: pointer; opacity: 0;
+    font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; padding: 0;
   }
-  #imgs .ph:hover .rmi { opacity: 1; }
+  #imgs .ph:hover button { opacity: 1; }
+  #imgs .ph .szm { left: -7px; }
+  #imgs .ph .szp { left: 15px; }
+  #imgs .ph .rmi { right: -7px; }
+
+  /* 點圖放大檢視 */
+  #lightbox {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(30,26,18,.9); display: none;
+    align-items: center; justify-content: center; cursor: zoom-out;
+  }
+  #lightbox img {
+    max-width: 93%; max-height: 92%;
+    background: #FFF; padding: 6px 6px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
 
   /* 手寫模式 */
   #draw { flex: 1; position: relative; display: none; }
@@ -249,7 +264,7 @@
       <circle cx="10.5" cy="6.5" r="2.4" fill="#F08A86"/>
     </svg>
     <div class="btns ctrl">
-      <button id="alarmBtn" title="鬧鈴提醒">鈴</button>
+      <button id="alarmBtn" title="鬧鈴提醒"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2.5h16z"/><path d="M10.5 21a1.5 1.5 0 0 0 3 0"/></svg></button>
       <button id="add" title="新增一張">＋</button>
       <button id="fold" title="收合 / 展開">▴</button>
       <button id="del" title="刪除這張">×</button>
@@ -281,6 +296,7 @@
     <button id="eraserBtn">橡皮擦</button>
     <button id="clearBtn">清空</button>
   </div>
+  <div id="lightbox"><img></div>
   <div id="content">
     <div id="imgs"></div>
     <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
@@ -312,7 +328,8 @@
   let fontSize = note.fontSize || 17
   let italic = !!note.italic
   let font = note.font || 'default'
-  let images = note.images || []
+  // 舊版圖片是純網址字串，轉成帶寬度的物件
+  let images = (note.images || []).map(x => typeof x === 'string' ? { src: x, w: 115 } : x)
   let alarm = note.alarm || null
 
   let timer
@@ -351,10 +368,11 @@
   const alarmChip = document.getElementById('alarmChip')
   const two = n => String(n).padStart(2, '0')
   const toLocalInput = d => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}T${two(d.getHours())}:${two(d.getMinutes())}`
+  const BELL_SVG = '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2.5h16z"/><path d="M10.5 21a1.5 1.5 0 0 0 3 0"/></svg>'
   function renderAlarmChip() {
     if (alarm) {
       const d = new Date(alarm)
-      alarmChip.textContent = `鬧鈴 ${d.getMonth() + 1}/${d.getDate()} ${two(d.getHours())}:${two(d.getMinutes())}`
+      alarmChip.innerHTML = `${BELL_SVG}${d.getMonth() + 1}/${d.getDate()} ${two(d.getHours())}:${two(d.getMinutes())}`
       alarmChip.style.display = 'block'
     } else alarmChip.style.display = 'none'
   }
@@ -382,14 +400,30 @@
 
   // ---------- 圖片（貼上 / 拖入） ----------
   const imgs = document.getElementById('imgs')
+  const lightbox = document.getElementById('lightbox')
+  const lightboxImg = lightbox.querySelector('img')
+  lightbox.onclick = () => { lightbox.style.display = 'none' }
+
   function renderImgs() {
     imgs.innerHTML = ''
-    images.forEach((src, i) => {
+    images.forEach((it, i) => {
       const ph = document.createElement('div'); ph.className = 'ph'
-      const im = document.createElement('img'); im.src = src
-      const rm = document.createElement('button'); rm.className = 'rmi'; rm.textContent = '×'
-      rm.onclick = () => { images.splice(i, 1); renderImgs(); save() }
-      ph.append(im, rm); imgs.appendChild(ph)
+      ph.style.width = (it.w || 115) + 'px'
+      const im = document.createElement('img'); im.src = it.src
+      im.title = '點一下放大'
+      im.onclick = () => { lightboxImg.src = it.src; lightbox.style.display = 'flex' }
+      const mk = (cls, label, fn, title) => {
+        const b = document.createElement('button')
+        b.className = cls; b.textContent = label; b.title = title
+        b.onclick = fn; return b
+      }
+      ph.append(
+        im,
+        mk('szm', '−', () => { it.w = Math.max(70, (it.w || 115) - 25); renderImgs(); save() }, '縮小'),
+        mk('szp', '＋', () => { it.w = Math.min(400, (it.w || 115) + 25); renderImgs(); save() }, '放大'),
+        mk('rmi', '×', () => { images.splice(i, 1); renderImgs(); save() }, '移除')
+      )
+      imgs.appendChild(ph)
     })
     imgs.style.display = (images.length && mode !== 'draw') ? 'flex' : 'none'
   }
@@ -402,7 +436,7 @@
       c.width = Math.round(img.width * scale)
       c.height = Math.round(img.height * scale)
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-      images.push(c.toDataURL('image/jpeg', 0.82))
+      images.push({ src: c.toDataURL('image/jpeg', 0.82), w: 115 })
       URL.revokeObjectURL(img.src)
       renderImgs(); save()
     }
@@ -610,6 +644,9 @@
     if (empty || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
   }
 
+  // selftest 截圖用：示範時固定顯示工具列
+  if (id && id.startsWith('demo')) document.body.classList.add('demo-show')
+
   // selftest 截圖用：示範拍立得圖片
   if (id === 'demo1' && images.length === 0) {
     const c = document.createElement('canvas'); c.width = c.height = 160
@@ -617,13 +654,13 @@
     g.fillStyle = '#C7D2B8'; g.fillRect(0, 0, 160, 160)
     g.fillStyle = '#8A9B72'; g.beginPath(); g.arc(80, 95, 45, 0, Math.PI * 2); g.fill()
     g.fillStyle = '#F0E6C8'; g.beginPath(); g.arc(115, 45, 22, 0, Math.PI * 2); g.fill()
-    images.push(c.toDataURL())
+    images.push({ src: c.toDataURL(), w: 115 })
     const c2 = document.createElement('canvas'); c2.width = c2.height = 160
     const g2 = c2.getContext('2d')
     g2.fillStyle = '#D8C8B8'; g2.fillRect(0, 0, 160, 160)
     g2.fillStyle = '#A88868'; g2.fillRect(28, 60, 104, 70)
     g2.fillStyle = '#6B5640'; g2.fillRect(28, 40, 104, 20)
-    images.push(c2.toDataURL())
+    images.push({ src: c2.toDataURL(), w: 145 })
     renderImgs()
   }
 
