@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: #3A352B; color: #F6EFDC;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #C9A86A;
+  }
+  .card { text-align: center; padding: 24px; }
+  .count { font-size: 64px; font-weight: 700; color: #E8C97D; line-height: 1.1; }
+  .count small { font-size: 20px; font-weight: 400; color: #F6EFDC; margin-left: 6px; }
+  .msg { margin-top: 10px; font-size: 16px; letter-spacing: 1px; }
+  .sub { margin-top: 6px; font-size: 13px; color: #B7AD93; }
+  .actions { margin-top: 26px; display: flex; gap: 12px; justify-content: center; }
+  button {
+    border: none; border-radius: 6px; padding: 10px 22px;
+    font-size: 14px; font-family: inherit; cursor: pointer; letter-spacing: 1px;
+  }
+  #ok { background: #E8C97D; color: #3A352B; font-weight: 700; }
+  #ok:hover { background: #F0D693; }
+  #quit { background: transparent; color: #B7AD93; border: 1px solid #6B6353; }
+  #quit:hover { color: #F6EFDC; border-color: #B7AD93; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="count"><span id="n"></span><small>張便利貼還沒處理</small></div>
+    <div class="msg" id="msg"></div>
+    <div class="sub" id="sub"></div>
+    <div class="actions">
+      <button id="ok">回去處理</button>
+      <button id="quit" style="display:none">仍要離開</button>
+    </div>
+  </div>
+<script>
+  const { ipcRenderer } = require('electron')
+  const q = new URLSearchParams(location.search)
+  document.getElementById('n').textContent = q.get('count') || '0'
+  const kind = q.get('kind')
+  const msg = document.getElementById('msg')
+  const sub = document.getElementById('sub')
+
+  if (kind === 'shutdown') {
+    msg.textContent = '確定要關機／離開嗎？'
+    sub.textContent = '離開之後就不會再提醒你了'
+    document.getElementById('quit').style.display = ''
+  } else {
+    msg.textContent = '電腦睡著前你留了便利貼'
+    sub.textContent = '看一眼再繼續吧'
+  }
+
+  document.getElementById('ok').onclick = () => window.close()
+  document.getElementById('quit').onclick = () => ipcRenderer.send('force-quit')
+
+  // 警示音：三短嗶
+  try {
+    const ctx = new AudioContext()
+    const beep = (t) => {
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.frequency.value = 880
+      o.connect(g); g.connect(ctx.destination)
+      g.gain.setValueAtTime(0.25, ctx.currentTime + t)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18)
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2)
+    }
+    beep(0); beep(0.3); beep(0.6)
+  } catch (e) {}
+</script>
+</body>
+</html>

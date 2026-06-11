@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bar: #E9E0CC; --paper: #F6EFDC; --ink: #4A4439; --muted: #8A8068; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: var(--paper);
+    border: 1px solid #D8CFB8;
+    display: flex; flex-direction: column;
+  }
+  .bar {
+    height: 34px; flex: 0 0 34px;
+    background: var(--bar);
+    display: flex; align-items: center; padding: 0 4px 0 12px;
+    -webkit-app-region: drag; user-select: none;
+  }
+  .bar .title { font-size: 10px; color: var(--muted); letter-spacing: 3px; }
+  .bar .btns { margin-left: auto; display: flex; gap: 2px; -webkit-app-region: no-drag; }
+  .bar button {
+    width: 26px; height: 26px; border: none; background: transparent;
+    color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; border-radius: 4px;
+  }
+  .bar button:hover { background: rgba(0,0,0,.08); color: var(--ink); }
+  textarea {
+    flex: 1; border: none; outline: none; resize: none;
+    background: transparent; padding: 10px 14px;
+    font-size: 14px; line-height: 1.8; color: var(--ink); font-family: inherit;
+  }
+  textarea::placeholder { color: #B7AD93; }
+  body.collapsed textarea { display: none; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="title">MEMO</span>
+    <div class="btns">
+      <button id="add" title="新增一張">＋</button>
+      <button id="fold" title="收合 / 展開">▴</button>
+      <button id="del" title="刪除這張">×</button>
+    </div>
+  </div>
+  <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
+<script>
+  const { ipcRenderer } = require('electron')
+  const id = new URLSearchParams(location.search).get('id')
+  const note = ipcRenderer.sendSync('get-note', id)
+  const ta = document.getElementById('text')
+  const fold = document.getElementById('fold')
+
+  ta.value = note.content || ''
+  if (note.collapsed) { document.body.classList.add('collapsed'); fold.textContent = '▾' }
+
+  let timer
+  ta.addEventListener('input', () => {
+    clearTimeout(timer)
+    timer = setTimeout(() => ipcRenderer.send('set-content', id, ta.value), 300)
+  })
+
+  fold.onclick = () => ipcRenderer.send('toggle-collapse', id)
+  ipcRenderer.on('collapsed', (e, c) => {
+    document.body.classList.toggle('collapsed', c)
+    fold.textContent = c ? '▾' : '▴'
+  })
+
+  document.getElementById('add').onclick = () => ipcRenderer.send('new-note')
+  document.getElementById('del').onclick = () => {
+    if (ta.value.trim() === '' || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
+  }
+</script>
+</body>
+</html>
