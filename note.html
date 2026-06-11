@@ -588,14 +588,19 @@
     root.setProperty('--note-font', FONTS[font] || FONTS.default)
     italicBtn.classList.toggle('on', italic)
     fontSel.value = font
-    // 橫線：行線＋筆記本左邊界線（用整數像素直接畫，避免 calc+var 在漸層裡失效）
+    // 橫線：行線＋筆記本左邊界線
+    // 邊界線用 border-box 座標（從紙邊算 28px），行線用 content-box（跟文字行對齊）
     if (mode === 'ruled') {
       ta.style.backgroundImage =
-        `linear-gradient(to right, transparent 16px, rgba(196,98,74,.4) 16px, rgba(196,98,74,.4) 17px, transparent 17px), ` +
+        `linear-gradient(to right, transparent 28px, rgba(196,98,74,.45) 28px, rgba(196,98,74,.45) 29.5px, transparent 29.5px), ` +
         `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lh - 1}px, var(--line) ${lh - 1}px, var(--line) ${lh}px)`
+      ta.style.backgroundOrigin = 'border-box, content-box'
+      ta.style.backgroundAttachment = 'scroll, local'
       ta.style.paddingLeft = '42px'
     } else {
       ta.style.backgroundImage = 'none'
+      ta.style.backgroundOrigin = ''
+      ta.style.backgroundAttachment = ''
       ta.style.paddingLeft = ''
     }
   }

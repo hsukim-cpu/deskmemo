@@ -373,6 +373,9 @@ async function selftest() {
   notes.forEach((n, i) => { const p = defaultPosition(i); n.x = p.x - i * 300; n.y = p.y })
   notes.forEach(createNoteWindow)
   await sleep(1800)
+  const probe = await noteWindows.get('demo1').webContents.executeJavaScript(
+    "const t=document.getElementById('text'); getComputedStyle(t).paddingLeft + ' || ' + getComputedStyle(t).backgroundImage.slice(0,150)")
+  console.log('PROBE:', probe)
   const img1 = await noteWindows.get('demo1').webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'note-preview.png'), img1.toPNG())
   const img2 = await noteWindows.get('demo2').webContents.capturePage()
