@@ -563,10 +563,16 @@
     root.setProperty('--note-font', FONTS[font] || FONTS.default)
     italicBtn.classList.toggle('on', italic)
     fontSel.value = font
-    // 橫線：用整數像素直接畫，避免 calc+var 在漸層裡失效
-    ta.style.backgroundImage = (mode === 'ruled')
-      ? `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lh - 1}px, var(--line) ${lh - 1}px, var(--line) ${lh}px)`
-      : 'none'
+    // 橫線：行線＋筆記本左邊界線（用整數像素直接畫，避免 calc+var 在漸層裡失效）
+    if (mode === 'ruled') {
+      ta.style.backgroundImage =
+        `linear-gradient(to right, transparent 16px, rgba(196,98,74,.4) 16px, rgba(196,98,74,.4) 17px, transparent 17px), ` +
+        `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lh - 1}px, var(--line) ${lh - 1}px, var(--line) ${lh}px)`
+      ta.style.paddingLeft = '42px'
+    } else {
+      ta.style.backgroundImage = 'none'
+      ta.style.paddingLeft = ''
+    }
   }
   document.getElementById('sizeUp').onclick = () => { fontSize = Math.min(26, fontSize + 2); applyTextStyle(); save() }
   document.getElementById('sizeDown').onclick = () => { fontSize = Math.max(12, fontSize - 2); applyTextStyle(); save() }
