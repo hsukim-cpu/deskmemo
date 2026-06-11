@@ -7,18 +7,18 @@
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    background: #F5F1E6; color: #3F3B33;
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid #DFD8C6;
+    background: transparent !important; border: none !important;
+    padding: 12px; display: flex;
+    color: #3F3B33;
   }
   /* 右下折角 */
-  body::after {
-    content: ""; position: fixed; right: 0; bottom: 0;
+  #paper::after {
+    content: ""; position: absolute; right: 0; bottom: 0;
     width: 30px; height: 30px; pointer-events: none;
     background: linear-gradient(to top left, #DFD8C6 50%, transparent 50.5%);
   }
   #pin {
-    position: fixed; left: 50%; top: 6px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
     width: 30px; height: 34px;
     filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
   }
@@ -36,9 +36,19 @@
   #ok:hover { background: #5E5346; }
   #quit { background: transparent; color: rgba(0,0,0,.45); border: 1px solid rgba(0,0,0,.25); }
   #quit:hover { color: #3F3B33; border-color: rgba(0,0,0,.5); }
+  #paper {
+    flex: 1; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 42%),
+      #F5F1E6;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.18)) drop-shadow(0 7px 16px rgba(0,0,0,.26));
+    clip-path: polygon(1px 1.4px, 30% 0.2px, 60% 1.2px, calc(100% - 1.2px) 1.6px, 100% 30%, calc(100% - 1.4px) 60%, calc(100% - 1.6px) calc(100% - 1.2px), 60% calc(100% - 0.3px), 28% calc(100% - 1.5px), 0.6px calc(100% - 1.6px), 1.5px 66%, 0px 33%);
+  }
 </style>
 </head>
 <body>
+  <div id="paper">
   <svg id="pin" viewBox="0 0 26 30">
     <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
     <circle cx="13" cy="9" r="7.5" fill="#D8413C"/>
@@ -89,5 +99,6 @@
     beep(0); beep(0.3); beep(0.6)
   } catch (e) {}
 </script>
+  </div>
 </body>
 </html>

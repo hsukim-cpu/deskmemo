@@ -13,9 +13,10 @@ app.on('second-instance', () => {
   if (noteWindows.size === 0) { addNote(); return }
   noteWindows.forEach(w => { w.show(); w.focus() })
 })
-const NOTE_W = 260
-const NOTE_H = 240
-const BAR_H = 34
+const NOTE_W = 284
+const NOTE_H = 268
+const MARGIN = 12          // 紙外的透明邊（落影用）
+const BAR_H = 34 + MARGIN * 2
 
 let notes = []                  // { id, content, x, y, width, height, collapsed }
 let deleted = []                // 最近刪除的便利貼（保險用，最多留 50 筆）
@@ -68,10 +69,11 @@ function createNoteWindow(note) {
     width: note.width || NOTE_W,
     height: note.collapsed ? BAR_H : (note.height || NOTE_H),
     frame: false,
+    transparent: true,
     resizable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
-    minWidth: 180,
+    minWidth: 200,
     minHeight: BAR_H,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   })
@@ -106,8 +108,8 @@ function showWarning(kind) {
   if (!hasPending()) return null
   if (warningWin && !warningWin.isDestroyed()) { warningWin.focus(); return warningWin }
   warningWin = new BrowserWindow({
-    width: 480, height: 300,
-    frame: false, resizable: false, skipTaskbar: true, alwaysOnTop: true,
+    width: 504, height: 324,
+    frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   })
   warningWin.setAlwaysOnTop(true, 'screen-saver')
@@ -139,6 +141,7 @@ ipcMain.on('set-note', (e, id, payload) => {
   note.month = payload.month
   note.cards = payload.cards
   note.cardIndex = payload.cardIndex
+  note.toolsOpen = payload.toolsOpen
   saveNotes()
 })
 
@@ -195,8 +198,8 @@ const noteExcerpt = (n) => {
 
 function showAlarm(id, text) {
   const w = new BrowserWindow({
-    width: 440, height: 280,
-    frame: false, resizable: false, skipTaskbar: true, alwaysOnTop: true,
+    width: 464, height: 304,
+    frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   })
   w.setAlwaysOnTop(true, 'screen-saver')
