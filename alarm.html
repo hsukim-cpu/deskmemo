@@ -73,11 +73,12 @@
   const { ipcRenderer } = require('electron')
   const q = new URLSearchParams(location.search)
   const noteId = q.get('id')
+  const alarmKey = q.get('key') || 'note'
   document.getElementById('text').textContent = q.get('text') || '便利貼提醒'
 
   document.getElementById('ok').onclick = () => window.close()
   document.getElementById('snooze').onclick = () => {
-    ipcRenderer.send('alarm-snooze', noteId)
+    ipcRenderer.send('alarm-snooze', noteId, alarmKey)
     window.close()
   }
 

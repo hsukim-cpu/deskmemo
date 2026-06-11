@@ -173,6 +173,30 @@
     font-size: 11px; color: rgba(0,0,0,.55); background: rgba(255,255,255,.5);
     border-radius: 3px; padding: 1px 7px; display: none; pointer-events: none;
   }
+  /* 行內鬧鈴：列表項/週記列/月記格自己的小鈴鐺與時間牌 */
+  .bellbtn {
+    border: none; background: transparent; cursor: pointer;
+    color: rgba(0,0,0,.38); padding: 0 2px; line-height: 1; opacity: 0;
+  }
+  .bellbtn:hover { color: #3B382F; }
+  .item:hover .bellbtn, .wrow:hover .bellbtn { opacity: 1; }
+  .hasAlarm > .bellbtn, .item.hasAlarm .bellbtn, .wrow.hasAlarm .bellbtn { opacity: 1; color: #C2452F; }
+  .ichip {
+    font-size: 10px; color: #C2452F; background: rgba(194,69,47,.08);
+    border-radius: 3px; padding: 0 4px; white-space: nowrap; flex: 0 0 auto;
+  }
+  .wrow .whead-line { display: flex; align-items: center; gap: 6px; }
+  .wrow .whead-line .bellbtn { margin-left: auto; }
+  .mcell .cbell {
+    position: absolute; top: 0; right: 0; z-index: 2;
+    border: none; background: transparent; cursor: pointer;
+    color: rgba(0,0,0,.4); padding: 1px; opacity: 0; line-height: 1;
+  }
+  .mcell:hover .cbell { opacity: 1; }
+  .mcell.hasAlarm::after {
+    content: ""; position: absolute; top: 2px; right: 2px;
+    width: 5px; height: 5px; border-radius: 50%; background: #C2452F;
+  }
 
   /* 圖片相紙 */
   #imgs {
@@ -504,6 +528,7 @@
   let font = note.font || 'default'
   let images = (note.images || []).map(x => typeof x === 'string' ? { src: x, w: 115 } : x)
   let alarm = note.alarm || null
+  let weekAlarms = note.weekAlarms || {}
   let week = note.week || {}
   let monthData = note.month || { ym: '', entries: {} }
   let cards = note.cards && note.cards.length ? note.cards : [{ front: '', back: '' }]
@@ -532,7 +557,7 @@
   let timer
   const save = () => ipcRenderer.send('set-note', id, {
     content: getText(), contentHtml: ta.innerHTML, mode, items, color, drawing,
-    fontSize, italic, font, images, alarm,
+    fontSize, italic, font, images, alarm, weekAlarms,
     week, month: monthData, cards, cardIndex, toolsOpen
   })
   const saveSoon = () => { clearTimeout(timer); timer = setTimeout(save, 300) }
@@ -624,26 +649,84 @@
       alarmChip.style.display = 'block'
     } else alarmChip.style.display = 'none'
   }
-  document.getElementById('alarmBtn').onclick = () => {
-    const open = alarmPop.style.display === 'block'
-    if (!open) {
-      const base = alarm ? new Date(alarm) : new Date(Date.now() + 60 * 60 * 1000)
-      alarmInput.value = toLocalInput(base)
+  // 鬧鈴可以掛在：整張紙(note) / 列表某項(item:i) / 週記某天(week:key) / 月記某天(month:ym:day)
+  let alarmTarget = 'note'
+  function getAlarmFor(t) {
+    if (t === 'note') return alarm
+    if (t.startsWith('item:')) return (items[+t.slice(5)] || {}).alarm
+    if (t.startsWith('week:')) return weekAlarms[t.slice(5)]
+    if (t.startsWith('month:')) {
+      const [, ym, d] = t.split(':')
+      return monthData.alarms && monthData.alarms[ym] && monthData.alarms[ym][d]
     }
-    alarmPop.style.display = open ? 'none' : 'block'
+    return null
+  }
+  function setAlarmFor(t, iso) {
+    if (t === 'note') alarm = iso
+    else if (t.startsWith('item:')) {
+      const it = items[+t.slice(5)]
+      if (it) { if (iso) it.alarm = iso; else delete it.alarm }
+    } else if (t.startsWith('week:')) {
+      if (iso) weekAlarms[t.slice(5)] = iso
+      else delete weekAlarms[t.slice(5)]
+    } else if (t.startsWith('month:')) {
+      const [, ym, d] = t.split(':')
+      monthData.alarms = monthData.alarms || {}
+      monthData.alarms[ym] = monthData.alarms[ym] || {}
+      if (iso) monthData.alarms[ym][d] = iso
+      else delete monthData.alarms[ym][d]
+    }
+  }
+  function refreshAlarmViews() {
+    renderAlarmChip()
+    if (mode === 'todo') renderTodo()
+    if (mode === 'week') renderWeek()
+    if (mode === 'month') renderMonth()
+  }
+  function openAlarmPop(target, x, y) {
+    alarmTarget = target
+    const cur = getAlarmFor(target)
+    const base = cur ? new Date(cur) : new Date(Date.now() + 60 * 60 * 1000)
+    alarmInput.value = toLocalInput(base)
+    alarmPop.style.display = 'block'
+    if (x !== undefined) {
+      const paper = document.getElementById('paper').getBoundingClientRect()
+      const left = Math.max(4, Math.min(x - paper.left - 60, paper.width - 220))
+      const top = Math.max(30, Math.min(y - paper.top + 10, paper.height - 120))
+      alarmPop.style.left = left + 'px'; alarmPop.style.right = 'auto'; alarmPop.style.top = top + 'px'
+    } else {
+      alarmPop.style.left = 'auto'; alarmPop.style.right = '6px'; alarmPop.style.top = '64px'
+    }
+  }
+  document.getElementById('alarmBtn').onclick = () => {
+    if (alarmPop.style.display === 'block') { alarmPop.style.display = 'none'; return }
+    openAlarmPop('note')
   }
   document.getElementById('alarmSet').onclick = () => {
     if (alarmInput.value) {
-      alarm = new Date(alarmInput.value).toISOString()
-      save(); renderAlarmChip()
+      setAlarmFor(alarmTarget, new Date(alarmInput.value).toISOString())
+      save(); refreshAlarmViews()
     }
     alarmPop.style.display = 'none'
   }
   document.getElementById('alarmClear').onclick = () => {
-    alarm = null; save(); renderAlarmChip()
+    setAlarmFor(alarmTarget, null); save(); refreshAlarmViews()
     alarmPop.style.display = 'none'
   }
   ipcRenderer.on('alarm-updated', (e, iso) => { alarm = iso; renderAlarmChip() })
+  // 鬧鈴響過/貪睡後，主程式回傳整張便條的新狀態
+  ipcRenderer.on('note-refreshed', (e, n) => {
+    alarm = n.alarm || null
+    items = n.items || items
+    weekAlarms = n.weekAlarms || {}
+    if (n.month) monthData = n.month
+    refreshAlarmViews()
+  })
+  const chipTime = iso => {
+    const d = new Date(iso)
+    return `${d.getMonth() + 1}/${d.getDate()} ${two(d.getHours())}:${two(d.getMinutes())}`
+  }
+  const bellBtnSvg = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2.5h16z"/><path d="M10.5 21a1.5 1.5 0 0 0 3 0"/></svg>'
   renderAlarmChip()
 
   // ---------- 圖片 ----------
@@ -843,10 +926,21 @@
           renderTodo(Math.max(0, i - 1)); save()
         }
       }
+      const bell = document.createElement('button')
+      bell.className = 'bellbtn'; bell.tabIndex = -1; bell.title = '這一項的鬧鈴'
+      bell.innerHTML = bellBtnSvg
+      bell.onclick = (e) => openAlarmPop(`item:${i}`, e.clientX, e.clientY)
       const rm = document.createElement('button')
       rm.className = 'rm'; rm.textContent = '×'; rm.tabIndex = -1
       rm.onclick = () => { items.splice(i, 1); renderTodo(); save() }
-      row.append(tick, inp, rm)
+      if (it.alarm) {
+        row.classList.add('hasAlarm')
+        const chip = document.createElement('span')
+        chip.className = 'ichip'; chip.textContent = chipTime(it.alarm)
+        row.append(tick, inp, chip, bell, rm)
+      } else {
+        row.append(tick, inp, bell, rm)
+      }
       todo.appendChild(row)
     })
     const ghost = document.createElement('div')
@@ -882,23 +976,37 @@
     ['month', 'MONTH'], ['mon', 'MON'], ['tue', 'TUE'], ['wed', 'WED'],
     ['thu', 'THU'], ['fri', 'FRI'], ['sat', 'SAT'], ['sun', 'SUN']
   ]
-  let weekBuilt = false
   function renderWeek() {
-    if (weekBuilt) return
-    weekBuilt = true
+    weekEl.innerHTML = ''
     WEEK_ROWS.forEach(([key, label]) => {
       const row = document.createElement('div')
       row.className = 'wrow' + (key === 'month' ? ' whead' : '')
+      const head = document.createElement('div')
+      head.className = 'whead-line'
       const lab = document.createElement('div')
       lab.className = 'muji-label'
       lab.textContent = label
+      head.appendChild(lab)
+      if (key !== 'month') {
+        if (weekAlarms[key]) {
+          row.classList.add('hasAlarm')
+          const chip = document.createElement('span')
+          chip.className = 'ichip'; chip.textContent = chipTime(weekAlarms[key])
+          head.appendChild(chip)
+        }
+        const bell = document.createElement('button')
+        bell.className = 'bellbtn'; bell.tabIndex = -1; bell.title = '這一天的鬧鈴'
+        bell.innerHTML = bellBtnSvg
+        bell.onclick = (e) => openAlarmPop(`week:${key}`, e.clientX, e.clientY)
+        head.appendChild(bell)
+      }
       const t = document.createElement('textarea')
       t.className = 'wta'
       t.spellcheck = false
       t.value = week[key] || ''
       t.rows = 1
       t.addEventListener('input', () => { week[key] = t.value; saveSoon() })
-      row.append(lab, t)
+      row.append(head, t)
       weekEl.appendChild(row)
     })
   }
@@ -937,7 +1045,12 @@
         tx.className = 'mtext'; tx.contentEditable = 'true'
         tx.textContent = ent[day] || ''
         tx.addEventListener('input', () => { ent[day] = tx.textContent; saveSoon() })
-        cell.append(dn, tx)
+        const cbell = document.createElement('button')
+        cbell.className = 'cbell'; cbell.tabIndex = -1; cbell.title = '這一天的鬧鈴'
+        cbell.innerHTML = bellBtnSvg.replace('width="11" height="11"', 'width="9" height="9"')
+        cbell.onclick = (e) => { e.stopPropagation(); openAlarmPop(`month:${ym}:${day}`, e.clientX, e.clientY) }
+        if (monthData.alarms && monthData.alarms[ym] && monthData.alarms[ym][day]) cell.classList.add('hasAlarm')
+        cell.append(dn, tx, cbell)
       }
       mgrid.appendChild(cell)
     }

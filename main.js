@@ -138,6 +138,7 @@ ipcMain.on('set-note', (e, id, payload) => {
   note.font = payload.font
   note.images = payload.images
   note.alarm = payload.alarm
+  note.weekAlarms = payload.weekAlarms
   note.week = payload.week
   note.month = payload.month
   note.cards = payload.cards
@@ -197,7 +198,7 @@ const noteExcerpt = (n) => {
   return '便利貼提醒'
 }
 
-function showAlarm(id, text) {
+function showAlarm(id, text, key) {
   const w = new BrowserWindow({
     width: 464, height: 304,
     frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
@@ -205,34 +206,78 @@ function showAlarm(id, text) {
   })
   w.setAlwaysOnTop(true, 'screen-saver')
   w.center()
-  w.loadFile('alarm.html', { query: { id, text } })
+  w.loadFile('alarm.html', { query: { id, text, key: key || 'note' } })
   return w
 }
 
+// 鬧鈴掛在哪就報哪：整張紙 / 列表某項 / 週記某天 / 月記某天
 function checkAlarms() {
   const now = Date.now()
   let changed = false
+  const fire = (n, key, label) => {
+    changed = true
+    const win = noteWindows.get(n.id)
+    if (win) { win.show(); win.webContents.send('note-refreshed', n) }
+    shell.beep()
+    showAlarm(n.id, label, key)
+  }
   for (const n of notes) {
     if (n.alarm && Date.parse(n.alarm) <= now) {
-      const text = noteExcerpt(n)
       n.alarm = null
-      changed = true
-      const win = noteWindows.get(n.id)
-      if (win) { win.show(); win.webContents.send('alarm-updated', null) }
-      shell.beep()
-      showAlarm(n.id, text)
+      fire(n, 'note', noteExcerpt(n))
+    }
+    ;(n.items || []).forEach((it, i) => {
+      if (it.alarm && Date.parse(it.alarm) <= now) {
+        delete it.alarm
+        fire(n, `item:${i}`, it.text || '清單項目')
+      }
+    })
+    const WD = { mon: '週一', tue: '週二', wed: '週三', thu: '週四', fri: '週五', sat: '週六', sun: '週日' }
+    for (const key of Object.keys(n.weekAlarms || {})) {
+      if (Date.parse(n.weekAlarms[key]) <= now) {
+        delete n.weekAlarms[key]
+        const txt = ((n.week || {})[key] || '').split('\n')[0]
+        fire(n, `week:${key}`, `${WD[key] || key}${txt ? '：' + txt : ''}`)
+      }
+    }
+    const ma = n.month && n.month.alarms
+    if (ma) {
+      for (const ym of Object.keys(ma)) {
+        for (const day of Object.keys(ma[ym])) {
+          if (Date.parse(ma[ym][day]) <= now) {
+            delete ma[ym][day]
+            const txt = ((n.month.entries || {})[ym] || {})[day] || ''
+            const m = ym.split('-')[1]
+            fire(n, `month:${ym}:${day}`, `${Number(m)}/${day}${txt ? '：' + txt : ''}`)
+          }
+        }
+      }
     }
   }
   if (changed) saveNotes()
 }
 
-ipcMain.on('alarm-snooze', (e, id) => {
+ipcMain.on('alarm-snooze', (e, id, key) => {
   const note = notes.find(n => n.id === id)
   if (!note) return
-  note.alarm = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+  const t = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+  if (!key || key === 'note') note.alarm = t
+  else if (key.startsWith('item:')) {
+    const i = +key.slice(5)
+    if (note.items && note.items[i]) note.items[i].alarm = t
+    else note.alarm = t
+  } else if (key.startsWith('week:')) {
+    note.weekAlarms = note.weekAlarms || {}
+    note.weekAlarms[key.slice(5)] = t
+  } else if (key.startsWith('month:')) {
+    const [, ym, day] = key.split(':')
+    note.month = note.month || { ym, entries: {} }
+    note.month.alarms = note.month.alarms || {}
+    ;(note.month.alarms[ym] = note.month.alarms[ym] || {})[day] = t
+  }
   saveNotes()
   const win = noteWindows.get(id)
-  if (win) win.webContents.send('alarm-updated', note.alarm)
+  if (win) win.webContents.send('note-refreshed', note)
 })
 
 // ---------- 警示邏輯 ----------
@@ -306,18 +351,19 @@ async function selftest() {
       id: 'demo2', mode: 'todo', color: 'pink', content: '',
       items: [
         { text: '回覆客人尺寸問題', done: true },
-        { text: '下午寄出 #4384', done: false },
+        { text: '下午寄出 #4384', done: false, alarm: new Date(Date.now() + 86400000).toISOString() },
         { text: '訂貨清單給齊', done: false }
       ]
     },
     { id: 'demo3', mode: 'draw', color: 'gray', content: '' },
     {
       id: 'demo4', mode: 'week', color: 'kraft', content: '', height: 420, width: 300,
-      week: { month: '六月第二週', mon: '對帳、出貨 #4384', tue: '新品上架', wed: '', thu: '訂貨清單給齊', fri: '週報', sat: '', sun: '' }
+      week: { month: '六月第二週', mon: '對帳、出貨 #4384', tue: '新品上架', wed: '', thu: '訂貨清單給齊', fri: '週報', sat: '', sun: '' },
+      weekAlarms: { mon: new Date(Date.now() + 86400000).toISOString() }
     },
     {
       id: 'demo5', mode: 'month', color: 'ivory', content: '', height: 400, width: 340,
-      month: { ym: '2026-06', entries: { '2026-06': { 8: '新品 9 折', 11: '便利貼 app', 15: '對帳' } } }
+      month: { ym: '2026-06', entries: { '2026-06': { 8: '新品 9 折', 11: '便利貼 app', 15: '對帳' } }, alarms: { '2026-06': { 15: new Date(Date.now() + 86400000).toISOString() } } }
     },
     {
       id: 'demo6', mode: 'cards', color: 'white', content: '', height: 340, width: 250,
