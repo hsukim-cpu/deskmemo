@@ -9,6 +9,8 @@ if (!SELFTEST && !app.requestSingleInstanceLock()) {
   app.exit(0)
 }
 app.on('second-instance', () => {
+  // 一張都沒有時（全被刪光），再開程式就直接生一張新的
+  if (noteWindows.size === 0) { addNote(); return }
   noteWindows.forEach(w => { w.show(); w.focus() })
 })
 const NOTE_W = 260
@@ -210,6 +212,7 @@ function setupTray() {
     {
       label: '顯示全部', click: () => {
         if (!noteWindows.size && notes.length) notes.forEach(createNoteWindow)
+        if (!noteWindows.size) { addNote(); return }
         noteWindows.forEach(w => { w.show(); w.focus() })
       }
     },
