@@ -3,73 +3,264 @@
 <head>
 <meta charset="utf-8">
 <style>
-  :root { --bar: #E9E0CC; --paper: #F6EFDC; --ink: #4A4439; --muted: #8A8068; }
+  body.c-yellow { --paper: #FCE98C; --fold: #E2CA61; --line: rgba(141,116,43,.32); --dot: #F7DD6E; }
+  body.c-pink   { --paper: #FFD3DE; --fold: #EFAFC1; --line: rgba(168,86,108,.28); --dot: #FFC2D1; }
+  body.c-blue   { --paper: #C8E6FF; --fold: #9FCAEF; --line: rgba(66,108,150,.28); --dot: #B5DCFB; }
+  body.c-green  { --paper: #CFEFC9; --fold: #ABD9A4; --line: rgba(77,128,71,.28);  --dot: #C0E8B9; }
+  body.c-purple { --paper: #E7DAFF; --fold: #C8B4EF; --line: rgba(108,87,158,.28); --dot: #DCCBFB; }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
     background: var(--paper);
-    border: 1px solid #D8CFB8;
+    color: #4B4237;
     display: flex; flex-direction: column;
   }
+  /* 右下折角 */
+  body::after {
+    content: ""; position: fixed; right: 0; bottom: 0;
+    width: 24px; height: 24px; pointer-events: none;
+    background: linear-gradient(to top left, var(--fold) 50%, transparent 50.5%);
+  }
+  body.collapsed::after { display: none; }
+
   .bar {
-    height: 34px; flex: 0 0 34px;
-    background: var(--bar);
-    display: flex; align-items: center; padding: 0 4px 0 12px;
+    height: 34px; flex: 0 0 34px; position: relative;
     -webkit-app-region: drag; user-select: none;
   }
-  .bar .title { font-size: 10px; color: var(--muted); letter-spacing: 3px; }
-  .bar .btns { margin-left: auto; display: flex; gap: 2px; -webkit-app-region: no-drag; }
-  .bar button {
-    width: 26px; height: 26px; border: none; background: transparent;
-    color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; border-radius: 4px;
+  /* 紅色圖釘 */
+  #pin {
+    position: absolute; left: 50%; top: 1px; transform: translateX(-50%);
+    width: 26px; height: 30px; cursor: pointer;
+    -webkit-app-region: no-drag;
+    filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
   }
-  .bar button:hover { background: rgba(0,0,0,.08); color: var(--ink); }
+  body.unpinned #pin { filter: grayscale(1) opacity(.45); }
+
+  .ctrl { opacity: 0; transition: opacity .15s; }
+  body:hover .ctrl { opacity: 1; }
+
+  #modeSel {
+    position: absolute; left: 8px; top: 7px;
+    -webkit-app-region: no-drag;
+    border: none; background: rgba(255,255,255,.35); border-radius: 5px;
+    font-size: 11px; font-family: inherit; color: #6B5F4A; padding: 2px 3px; outline: none;
+  }
+  .btns {
+    position: absolute; right: 5px; top: 4px; display: flex; gap: 1px;
+    -webkit-app-region: no-drag;
+  }
+  .btns button {
+    width: 25px; height: 25px; border: none; background: transparent;
+    color: #6B5F4A; font-size: 14px; line-height: 1; cursor: pointer; border-radius: 5px;
+  }
+  .btns button:hover { background: rgba(0,0,0,.08); color: #3B3328; }
+
+  /* 底色選擇圓點 */
+  #dots {
+    position: absolute; left: 10px; top: 36px; z-index: 5;
+    display: flex; gap: 6px; -webkit-app-region: no-drag;
+  }
+  #dots span {
+    width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+    border: 1.5px solid rgba(0,0,0,.18);
+  }
+  #dots span.cur { border-color: rgba(0,0,0,.55); }
+
+  #content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  body.collapsed #content { display: none; }
+
   textarea {
     flex: 1; border: none; outline: none; resize: none;
-    background: transparent; padding: 10px 14px;
-    font-size: 14px; line-height: 1.8; color: var(--ink); font-family: inherit;
+    background: transparent; padding: 10px 14px 24px;
+    font-size: 14px; line-height: 28px; color: inherit; font-family: inherit;
   }
-  textarea::placeholder { color: #B7AD93; }
-  body.collapsed textarea { display: none; }
+  textarea::placeholder { color: rgba(0,0,0,.25); }
+  textarea.ruled {
+    background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--line) 27px 28px);
+    background-attachment: local;
+    background-origin: content-box;
+  }
+
+  /* 清單模式 */
+  #todo { flex: 1; overflow-y: auto; padding: 8px 10px 24px; display: none; }
+  .item { display: flex; align-items: center; min-height: 28px; gap: 8px; }
+  .tick {
+    width: 15px; height: 15px; flex: 0 0 15px; cursor: pointer; position: relative;
+    border: 1.5px solid rgba(0,0,0,.35); border-radius: 4px; background: rgba(255,255,255,.4);
+  }
+  .item.done .tick { background: #7A8C5E; border-color: #7A8C5E; }
+  .item.done .tick::after {
+    content: ""; position: absolute; left: 3px; top: 1px;
+    width: 6px; height: 9px;
+    border: solid #FFF; border-width: 0 2px 2px 0; transform: rotate(40deg);
+  }
+  .item input {
+    flex: 1; border: none; background: transparent; outline: none;
+    font: inherit; font-size: 14px; color: inherit; min-width: 0;
+  }
+  .item.done input { text-decoration: line-through; color: rgba(0,0,0,.35); }
+  .item .rm {
+    width: 20px; height: 20px; border: none; background: transparent; border-radius: 4px;
+    color: rgba(0,0,0,.3); font-size: 13px; cursor: pointer; opacity: 0;
+  }
+  .item:hover .rm { opacity: 1; }
+  .item .rm:hover { background: rgba(0,0,0,.08); color: #3B3328; }
+  .item.ghost .tick { border-style: dashed; background: transparent; cursor: default; }
+  .item.ghost input::placeholder { color: rgba(0,0,0,.25); }
 </style>
 </head>
-<body>
+<body class="c-yellow">
   <div class="bar">
-    <span class="title">MEMO</span>
-    <div class="btns">
+    <select id="modeSel" class="ctrl" title="便條紙樣式">
+      <option value="plain">空白</option>
+      <option value="ruled">橫線</option>
+      <option value="todo">清單</option>
+    </select>
+    <svg id="pin" viewBox="0 0 26 30" title="點一下拔起/釘上">
+      <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="13" cy="9" r="7.5" fill="#D8413C"/>
+      <circle cx="13" cy="9" r="7.5" fill="none" stroke="#B22F2B" stroke-width="1"/>
+      <circle cx="10.5" cy="6.5" r="2.4" fill="#F08A86"/>
+    </svg>
+    <div class="btns ctrl">
       <button id="add" title="新增一張">＋</button>
       <button id="fold" title="收合 / 展開">▴</button>
       <button id="del" title="刪除這張">×</button>
     </div>
   </div>
-  <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
+  <div id="dots" class="ctrl"></div>
+  <div id="content">
+    <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
+    <div id="todo"></div>
+  </div>
 <script>
   const { ipcRenderer } = require('electron')
   const id = new URLSearchParams(location.search).get('id')
   const note = ipcRenderer.sendSync('get-note', id)
+
   const ta = document.getElementById('text')
-  const fold = document.getElementById('fold')
+  const todo = document.getElementById('todo')
+  const modeSel = document.getElementById('modeSel')
+  const foldBtn = document.getElementById('fold')
+  const dots = document.getElementById('dots')
+
+  const COLORS = ['yellow', 'pink', 'blue', 'green', 'purple']
+  let mode = note.mode || 'plain'
+  let items = note.items || []
+  let color = COLORS.includes(note.color) ? note.color : 'yellow'
 
   ta.value = note.content || ''
-  if (note.collapsed) { document.body.classList.add('collapsed'); fold.textContent = '▾' }
+  modeSel.value = mode
+  if (note.collapsed) { document.body.classList.add('collapsed'); foldBtn.textContent = '▾' }
+  if (note.pinned === false) document.body.classList.add('unpinned')
 
   let timer
-  ta.addEventListener('input', () => {
-    clearTimeout(timer)
-    timer = setTimeout(() => ipcRenderer.send('set-content', id, ta.value), 300)
-  })
+  const save = () => ipcRenderer.send('set-note', id, { content: ta.value, mode, items, color })
+  const saveSoon = () => { clearTimeout(timer); timer = setTimeout(save, 300) }
 
-  fold.onclick = () => ipcRenderer.send('toggle-collapse', id)
+  function applyColor() {
+    document.body.className = document.body.className.replace(/c-\w+/, 'c-' + color)
+    dots.querySelectorAll('span').forEach(d => d.classList.toggle('cur', d.dataset.c === color))
+  }
+
+  COLORS.forEach(c => {
+    const d = document.createElement('span')
+    d.dataset.c = c
+    d.style.background = {
+      yellow: '#F7DD6E', pink: '#FFC2D1', blue: '#B5DCFB', green: '#C0E8B9', purple: '#DCCBFB'
+    }[c]
+    d.onclick = () => { color = c; applyColor(); save() }
+    dots.appendChild(d)
+  })
+  applyColor()
+
+  function renderMode() {
+    ta.style.display = (mode === 'todo') ? 'none' : ''
+    todo.style.display = (mode === 'todo') ? 'block' : 'none'
+    ta.classList.toggle('ruled', mode === 'ruled')
+    if (mode === 'todo') renderTodo()
+  }
+
+  function renderTodo(focusIndex) {
+    todo.innerHTML = ''
+    items.forEach((it, i) => {
+      const row = document.createElement('div')
+      row.className = 'item' + (it.done ? ' done' : '')
+      const tick = document.createElement('div')
+      tick.className = 'tick'
+      tick.title = '做完點一下劃掉'
+      tick.onclick = () => { it.done = !it.done; renderTodo(); save() }
+      const inp = document.createElement('input')
+      inp.value = it.text
+      inp.oninput = () => { it.text = inp.value; saveSoon() }
+      inp.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.isComposing) {
+          items.splice(i + 1, 0, { text: '', done: false })
+          renderTodo(i + 1); save()
+        } else if (e.key === 'Backspace' && inp.value === '') {
+          e.preventDefault()
+          items.splice(i, 1)
+          renderTodo(Math.max(0, i - 1)); save()
+        }
+      }
+      const rm = document.createElement('button')
+      rm.className = 'rm'; rm.textContent = '×'; rm.tabIndex = -1
+      rm.onclick = () => { items.splice(i, 1); renderTodo(); save() }
+      row.append(tick, inp, rm)
+      todo.appendChild(row)
+    })
+    // 最後固定一行「新增項目」
+    const ghost = document.createElement('div')
+    ghost.className = 'item ghost'
+    const gtick = document.createElement('div'); gtick.className = 'tick'
+    const gi = document.createElement('input')
+    gi.placeholder = '新增項目'
+    const commit = () => {
+      if (!gi.value.trim()) return
+      items.push({ text: gi.value, done: false })
+      renderTodo(); save()
+      todo.querySelector('.ghost input').focus()
+    }
+    gi.onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) commit() }
+    gi.onblur = () => { if (gi.value.trim()) { items.push({ text: gi.value, done: false }); renderTodo(); save() } }
+    ghost.append(gtick, gi)
+    todo.appendChild(ghost)
+    if (focusIndex !== undefined && todo.children[focusIndex]) {
+      todo.children[focusIndex].querySelector('input').focus()
+    }
+  }
+
+  modeSel.onchange = () => {
+    const next = modeSel.value
+    if (next === 'todo' && mode !== 'todo') {
+      items = ta.value.split('\n').filter(l => l.trim()).map(t => ({ text: t, done: false }))
+    } else if (next !== 'todo' && mode === 'todo') {
+      ta.value = items.filter(i => i.text.trim()).map(i => i.text).join('\n')
+    }
+    mode = next
+    renderMode(); save()
+  }
+
+  ta.addEventListener('input', saveSoon)
+
+  document.getElementById('pin').onclick = () => ipcRenderer.send('toggle-pin', id)
+  ipcRenderer.on('pinned', (e, p) => document.body.classList.toggle('unpinned', !p))
+
+  foldBtn.onclick = () => ipcRenderer.send('toggle-collapse', id)
   ipcRenderer.on('collapsed', (e, c) => {
     document.body.classList.toggle('collapsed', c)
-    fold.textContent = c ? '▾' : '▴'
+    foldBtn.textContent = c ? '▾' : '▴'
   })
 
   document.getElementById('add').onclick = () => ipcRenderer.send('new-note')
   document.getElementById('del').onclick = () => {
-    if (ta.value.trim() === '' || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
+    const empty = mode === 'todo' ? !items.some(i => i.text.trim()) : ta.value.trim() === ''
+    if (empty || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
   }
+
+  renderMode()
 </script>
 </body>
 </html>

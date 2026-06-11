@@ -1,6 +1,6 @@
 {
   "name": "desktop-sticky-notes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "跨平台桌面便利貼：置頂、可收合、闔蓋/關機警示",
   "main": "main.js",
   "scripts": {
@@ -24,7 +24,7 @@
       "signAndEditExecutable": false
     },
     "nsis": {
-      "artifactName": "DeskMemo-Setup-${version}.exe"
+      "artifactName": "DeskMemo-Setup.${ext}"
     },
     "mac": {
       "target": [
@@ -36,6 +36,7 @@
           ]
         }
       ],
+      "artifactName": "DeskMemo-${arch}.${ext}",
       "category": "public.app-category.productivity"
     }
   }

@@ -7,27 +7,44 @@
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    background: #3A352B; color: #F6EFDC;
+    background: #FCE98C; color: #4B4237;
     display: flex; align-items: center; justify-content: center;
-    border: 2px solid #C9A86A;
+    border: 1px solid #E2CA61;
+  }
+  /* 右下折角 */
+  body::after {
+    content: ""; position: fixed; right: 0; bottom: 0;
+    width: 30px; height: 30px; pointer-events: none;
+    background: linear-gradient(to top left, #E2CA61 50%, transparent 50.5%);
+  }
+  #pin {
+    position: fixed; left: 50%; top: 6px; transform: translateX(-50%);
+    width: 30px; height: 34px;
+    filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
   }
   .card { text-align: center; padding: 24px; }
-  .count { font-size: 64px; font-weight: 700; color: #E8C97D; line-height: 1.1; }
-  .count small { font-size: 20px; font-weight: 400; color: #F6EFDC; margin-left: 6px; }
-  .msg { margin-top: 10px; font-size: 16px; letter-spacing: 1px; }
-  .sub { margin-top: 6px; font-size: 13px; color: #B7AD93; }
-  .actions { margin-top: 26px; display: flex; gap: 12px; justify-content: center; }
+  .count { font-size: 60px; font-weight: 700; color: #C2452F; line-height: 1.1; }
+  .count small { font-size: 20px; font-weight: 600; color: #4B4237; margin-left: 6px; }
+  .msg { margin-top: 12px; font-size: 16px; letter-spacing: 1px; }
+  .sub { margin-top: 6px; font-size: 13px; color: rgba(0,0,0,.45); }
+  .actions { margin-top: 24px; display: flex; gap: 12px; justify-content: center; }
   button {
-    border: none; border-radius: 6px; padding: 10px 22px;
+    border: none; border-radius: 7px; padding: 10px 24px;
     font-size: 14px; font-family: inherit; cursor: pointer; letter-spacing: 1px;
   }
-  #ok { background: #E8C97D; color: #3A352B; font-weight: 700; }
-  #ok:hover { background: #F0D693; }
-  #quit { background: transparent; color: #B7AD93; border: 1px solid #6B6353; }
-  #quit:hover { color: #F6EFDC; border-color: #B7AD93; }
+  #ok { background: #4B4237; color: #FCE98C; font-weight: 700; }
+  #ok:hover { background: #5E5346; }
+  #quit { background: transparent; color: rgba(0,0,0,.45); border: 1px solid rgba(0,0,0,.25); }
+  #quit:hover { color: #4B4237; border-color: rgba(0,0,0,.5); }
 </style>
 </head>
 <body>
+  <svg id="pin" viewBox="0 0 26 30">
+    <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="13" cy="9" r="7.5" fill="#D8413C"/>
+    <circle cx="13" cy="9" r="7.5" fill="none" stroke="#B22F2B" stroke-width="1"/>
+    <circle cx="10.5" cy="6.5" r="2.4" fill="#F08A86"/>
+  </svg>
   <div class="card">
     <div class="count"><span id="n"></span><small>張便利貼還沒處理</small></div>
     <div class="msg" id="msg"></div>

@@ -3,6 +3,14 @@ const fs = require('fs')
 const path = require('path')
 
 const SELFTEST = process.argv.includes('--selftest')
+
+// 只允許開一份；重複開啟時把既有便利貼帶到最前面
+if (!SELFTEST && !app.requestSingleInstanceLock()) {
+  app.exit(0)
+}
+app.on('second-instance', () => {
+  noteWindows.forEach(w => { w.show(); w.focus() })
+})
 const NOTE_W = 260
 const NOTE_H = 240
 const BAR_H = 34
@@ -33,8 +41,12 @@ function saveNotes() {
 }
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-const hasPending = () => notes.some(n => n.content && n.content.trim())
-const pendingCount = () => notes.filter(n => n.content && n.content.trim()).length
+// 清單模式：有沒打勾的項目才算未處理；其他模式：有字就算
+const notePending = n => n.mode === 'todo'
+  ? (n.items || []).some(i => i.text && i.text.trim() && !i.done)
+  : !!(n.content && n.content.trim())
+const hasPending = () => notes.some(notePending)
+const pendingCount = () => notes.filter(notePending).length
 
 function defaultPosition(index) {
   const wa = screen.getPrimaryDisplay().workArea
@@ -57,7 +69,7 @@ function createNoteWindow(note) {
     minHeight: BAR_H,
     webPreferences: { nodeIntegration: true, contextIsolation: false }
   })
-  win.setAlwaysOnTop(true, 'floating')
+  win.setAlwaysOnTop(note.pinned !== false, 'floating')
   win.loadFile('note.html', { query: { id: note.id } })
 
   const remember = () => {
@@ -104,9 +116,24 @@ ipcMain.on('get-note', (e, id) => {
   e.returnValue = notes.find(n => n.id === id) || {}
 })
 
-ipcMain.on('set-content', (e, id, content) => {
+ipcMain.on('set-note', (e, id, payload) => {
   const note = notes.find(n => n.id === id)
-  if (note) { note.content = content; saveNotes() }
+  if (!note) return
+  note.content = payload.content
+  note.mode = payload.mode
+  note.items = payload.items
+  note.color = payload.color
+  saveNotes()
+})
+
+ipcMain.on('toggle-pin', (e, id) => {
+  const note = notes.find(n => n.id === id)
+  const win = noteWindows.get(id)
+  if (!note || !win) return
+  note.pinned = note.pinned === false
+  win.setAlwaysOnTop(note.pinned, 'floating')
+  win.webContents.send('pinned', note.pinned)
+  saveNotes()
 })
 
 ipcMain.on('toggle-collapse', (e, id) => {
@@ -198,18 +225,28 @@ function setupTray() {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function selftest() {
-  notes = [{ id: 'demo1', content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384', collapsed: false }]
-  const pos = defaultPosition(0)
-  notes[0].x = pos.x; notes[0].y = pos.y
+  notes = [
+    { id: 'demo1', mode: 'ruled', color: 'yellow', content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384' },
+    {
+      id: 'demo2', mode: 'todo', color: 'pink', content: '',
+      items: [
+        { text: '回覆客人尺寸問題', done: true },
+        { text: '下午寄出 #4384', done: false },
+        { text: '訂貨清單給齊', done: false }
+      ]
+    }
+  ]
+  notes.forEach((n, i) => { const p = defaultPosition(i); n.x = p.x - i * 300; n.y = p.y })
   notes.forEach(createNoteWindow)
   await sleep(1800)
-  const noteWin = noteWindows.get('demo1')
-  const img1 = await noteWin.webContents.capturePage()
+  const img1 = await noteWindows.get('demo1').webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'note-preview.png'), img1.toPNG())
+  const img2 = await noteWindows.get('demo2').webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'todo-preview.png'), img2.toPNG())
   const w = showWarning('shutdown')
   await sleep(1500)
-  const img2 = await w.webContents.capturePage()
-  fs.writeFileSync(path.join(__dirname, 'warning-preview.png'), img2.toPNG())
+  const img3 = await w.webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'warning-preview.png'), img3.toPNG())
   app.exit(0)
 }
 
