@@ -1,42 +1,39 @@
-# 桌面便利貼（DeskMemo）
+# DeskMemo 桌面便利貼
 
-跨平台（Windows / Mac 通用）的螢幕便利貼，給容易忘東忘西的人用。
+給容易忘東忘西的人：便利貼永遠貼在螢幕最上層，關機想落跑會被警示音擋下來。
+Windows / Mac 通用。
 
-## 功能
+## 下載安裝（不用懂程式）
 
-- 浮動便利貼永遠置頂在螢幕上，可拖曳、可調大小、可多張（＋）
-- 「▴」收合成一條細長標題列（往上翻），再按展開
-- 內容即時自動保存，重開電腦還在
-- 系統列圖示：新增便利貼、顯示全部、開機自動啟動、結束
-- **關機／關掉程式**：還有未處理的便利貼時，播警示音＋跳警示視窗擋下，按「仍要離開」才放行
-- **闔上筆電（睡眠）**：闔上瞬間嗶一聲；打開螢幕後立刻跳大警示（系統不允許程式阻止睡眠，這是兩個平台共同的上限）
-- 刪除的便利貼會留在 notes.json 的 deleted 區（最多 50 筆），誤刪可救
+到 [Releases 下載頁](https://github.com/hsukim-cpu/deskmemo/releases/latest)，挑自己電腦的那個檔：
 
-## 開發模式執行（目前狀態）
+| 你的電腦 | 下載檔案 | 裝法 |
+|---|---|---|
+| Windows | `DeskMemo-Setup-x.x.x.exe` | 點兩下安裝。跳出藍色「Windows 已保護你的電腦」時，按「其他資訊」→「仍要執行」（因為是自製軟體、沒買微軟簽章，不是病毒） |
+| Mac（2020 年後、M 系列晶片） | `DeskMemo-x.x.x-arm64.dmg` | 打開 dmg、把 DeskMemo 拖進「應用程式」。第一次開啟若被擋：對 DeskMemo 按右鍵 →「打開」→ 再按「打開」 |
+| Mac（舊款 Intel） | `DeskMemo-x.x.x.dmg` | 同上 |
 
-需要先裝 Node.js（https://nodejs.org，LTS 版即可）：
+## 怎麼用
+
+1. 打開後螢幕右上角會出現一張米色便利貼，直接打字，內容自動保存
+2. 拖標題列移動位置、拉邊框調大小
+3. 標題列按鈕：**＋** 再開一張、**▴** 往上收合成細條（再按展開）、**×** 刪除這張
+4. 右下角系統列（Mac 是右上角選單列）有 DeskMemo 小圖示：新增便利貼、顯示全部、**開機自動啟動（建議勾起來）**、結束
+
+## 警示行為
+
+- **關機／關掉程式**：還有便利貼沒處理 → 三聲警示音＋跳警示視窗擋下，按「仍要離開」才放行
+- **闔上筆電**：闔上瞬間嗶一聲；再打開螢幕立刻跳大字警示。（Windows/Mac 都不允許程式阻止睡眠，所以做不到「蓋不下去」，這是系統上限）
+- 沒有未處理的便利貼時，安靜不打擾
+
+## 給開發者
 
 ```
-cd sticky-notes
 npm install
-npm start
+npm start                      # 開發模式
+npx electron . --selftest      # 產兩張預覽截圖後自動結束
+npx electron-builder --win     # 打包 Windows 安裝檔
 ```
 
-## 測試模式
-
-```
-npx electron . --selftest
-```
-
-會產生 note-preview.png 與 warning-preview.png 兩張截圖後自動結束，不會動到正式資料。
-
-## 還沒做（下一步）
-
-- 打包成免裝 Node 的安裝檔：Windows 的 .exe 可在本機用 electron-builder 直接打包；
-  Mac 的 .dmg 要在 Mac 上打包，或用 GitHub Actions 免費代打（推上 GitHub 後兩個平台一次出）
-- macOS 第一次跑可能要在「系統設定 → 隱私權與安全性」允許
-
-## 平台行為差異
-
-- Windows 關機時：系統會顯示「DeskMemo 正在阻止關機」畫面＋本程式警示，本身就是一道警示
-- macOS 關機時：程式攔下後跳警示；按「仍要離開」只會結束程式，要再按一次關機
+Mac dmg 由 GitHub Actions 打包（`.github/workflows/build-mac.yml`，手動觸發、上傳到指定 release tag）。
+刪除的便利貼會留在使用者資料夾 `notes.json` 的 `deleted` 區（最多 50 筆），誤刪可救。
