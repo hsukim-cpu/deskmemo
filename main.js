@@ -341,6 +341,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function selftest() {
   notes = [
+    { id: 'demo8', mode: 'ruled', content: '', width: 287, height: 353 },
+    { id: 'demo0', mode: 'todo', color: 'white', content: '', items: [], height: 320 },
     {
       id: 'demo1', mode: 'ruled', color: 'yellow', height: 380, width: 300,
       content: '10:00 跟廠商對帳\n回覆客人尺寸問題\n下午寄出 #4384',
@@ -376,6 +378,12 @@ async function selftest() {
   const probe = await noteWindows.get('demo1').webContents.executeJavaScript(
     "const t=document.getElementById('text'); getComputedStyle(t).paddingLeft + ' || ' + getComputedStyle(t).backgroundImage.slice(0,150)")
   console.log('PROBE:', probe)
+  const probe8 = await noteWindows.get('demo8').webContents.executeJavaScript("document.getElementById('text') ? getComputedStyle(document.getElementById('text')).backgroundImage.slice(0,60) : 'NO TEXT EL'").catch(e => 'JS ERROR: ' + e.message)
+  console.log('PROBE8:', probe8)
+  const img8 = await noteWindows.get('demo8').webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'kim-repro-preview.png'), img8.toPNG())
+  const img0 = await noteWindows.get('demo0').webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'todo-empty-preview.png'), img0.toPNG())
   const img1 = await noteWindows.get('demo1').webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'note-preview.png'), img1.toPNG())
   const img2 = await noteWindows.get('demo2').webContents.capturePage()
