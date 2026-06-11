@@ -235,10 +235,10 @@
   #drawTools { display: none; }
   body.tools-open #drawTools.show, #drawTools.show { display: flex; }
 
-  /* 列表（無印 checklist） */
-  #todo { flex: 1; overflow-y: auto; padding: 6px 14px 26px; display: none; }
+  /* 列表（無印 checklist：整頁鋪滿格線，空行也有方框） */
+  #todo { flex: 1; overflow-y: auto; padding: 2px 14px 26px; display: none; }
   .item {
-    display: flex; align-items: center; min-height: 36px; gap: 10px;
+    display: flex; align-items: center; height: 40px; gap: 10px;
     border-bottom: 1px solid var(--line); padding: 3px 2px;
   }
   .tick {
@@ -555,11 +555,17 @@
   if (note.pinned === false) document.body.classList.add('unpinned')
 
   let timer
-  const save = () => ipcRenderer.send('set-note', id, {
-    content: getText(), contentHtml: ta.innerHTML, mode, items, color, drawing,
-    fontSize, italic, font, images, alarm, weekAlarms,
-    week, month: monthData, cards, cardIndex, toolsOpen
-  })
+  const trimItems = () => {
+    while (items.length && !items[items.length - 1].text.trim() && !items[items.length - 1].done && !items[items.length - 1].alarm) items.pop()
+  }
+  const save = () => {
+    trimItems()
+    ipcRenderer.send('set-note', id, {
+      content: getText(), contentHtml: ta.innerHTML, mode, items, color, drawing,
+      fontSize, italic, font, images, alarm, weekAlarms,
+      week, month: monthData, cards, cardIndex, toolsOpen
+    })
+  }
   const saveSoon = () => { clearTimeout(timer); timer = setTimeout(save, 300) }
 
   // ---------- 工具列開合 ----------
@@ -588,21 +594,10 @@
     root.setProperty('--note-font', FONTS[font] || FONTS.default)
     italicBtn.classList.toggle('on', italic)
     fontSel.value = font
-    // 橫線：行線＋筆記本左邊界線
-    // 邊界線用 border-box 座標（從紙邊算 28px），行線用 content-box（跟文字行對齊）
-    if (mode === 'ruled') {
-      ta.style.backgroundImage =
-        `linear-gradient(to right, transparent 28px, rgba(196,98,74,.45) 28px, rgba(196,98,74,.45) 29.5px, transparent 29.5px), ` +
-        `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lh - 1}px, var(--line) ${lh - 1}px, var(--line) ${lh}px)`
-      ta.style.backgroundOrigin = 'border-box, content-box'
-      ta.style.backgroundAttachment = 'scroll, local'
-      ta.style.paddingLeft = '42px'
-    } else {
-      ta.style.backgroundImage = 'none'
-      ta.style.backgroundOrigin = ''
-      ta.style.backgroundAttachment = ''
-      ta.style.paddingLeft = ''
-    }
+    // 橫線：單純橫線（Kim 定案），用整數像素畫避免 calc+var 在漸層裡失效
+    ta.style.backgroundImage = (mode === 'ruled')
+      ? `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lh - 1}px, var(--line) ${lh - 1}px, var(--line) ${lh}px)`
+      : 'none'
   }
   document.getElementById('sizeUp').onclick = () => { fontSize = Math.min(26, fontSize + 2); applyTextStyle(); save() }
   document.getElementById('sizeDown').onclick = () => { fontSize = Math.max(12, fontSize - 2); applyTextStyle(); save() }
@@ -909,71 +904,67 @@
   }
 
   // ---------- 列表 ----------
+  // 整頁鋪滿格線：實際項目之後補滿空白行，點哪行打字哪行就變項目
+  const ensureItem = (i) => { while (items.length <= i) items.push({ text: '', done: false }) }
   function renderTodo(focusIndex) {
     todo.innerHTML = ''
-    items.forEach((it, i) => {
+    const rowH = 40
+    const fit = Math.floor((todo.clientHeight || 200) / rowH)
+    const total = Math.max(items.length + 1, fit)
+    for (let i = 0; i < total; i++) {
+      const it = items[i]
       const row = document.createElement('div')
-      row.className = 'item' + (it.done ? ' done' : '')
+      row.className = 'item' + (it && it.done ? ' done' : '')
       const tick = document.createElement('div')
       tick.className = 'tick'
       tick.title = '做完點一下劃掉'
-      tick.onclick = () => { it.done = !it.done; renderTodo(); save() }
+      tick.onclick = () => {
+        if (!items[i] || !items[i].text.trim()) return
+        items[i].done = !items[i].done; renderTodo(); save()
+      }
       const inp = document.createElement('input')
-      inp.value = it.text
-      inp.oninput = () => { it.text = inp.value; saveSoon() }
+      inp.value = it ? it.text : ''
+      inp.oninput = () => { ensureItem(i); items[i].text = inp.value; saveSoon() }
       inp.onkeydown = (e) => {
         if (e.key === 'Enter' && !e.isComposing) {
-          items.splice(i + 1, 0, { text: '', done: false })
-          renderTodo(i + 1); save()
-        } else if (e.key === 'Backspace' && inp.value === '') {
+          if (i + 1 >= total) renderTodo(i + 1)
+          else {
+            const next = todo.children[i + 1]
+            if (next) next.querySelector('input').focus()
+          }
+        } else if (e.key === 'Backspace' && inp.value === '' && items[i]) {
           e.preventDefault()
           items.splice(i, 1)
           renderTodo(Math.max(0, i - 1)); save()
         }
       }
-      const bell = document.createElement('button')
-      bell.className = 'bellbtn'; bell.tabIndex = -1; bell.title = '這一項的鬧鈴'
-      bell.innerHTML = bellBtnSvg
-      bell.onclick = (e) => openAlarmPop(`item:${i}`, e.clientX, e.clientY)
-      const rm = document.createElement('button')
-      rm.className = 'rm'; rm.textContent = '×'; rm.tabIndex = -1
-      rm.onclick = () => { items.splice(i, 1); renderTodo(); save() }
-      if (it.alarm) {
-        row.classList.add('hasAlarm')
-        const chip = document.createElement('span')
-        chip.className = 'ichip'; chip.textContent = chipTime(it.alarm)
-        row.append(tick, inp, chip, bell, rm)
-      } else {
-        row.append(tick, inp, bell, rm)
+      row.append(tick, inp)
+      if (it && (it.text.trim() || it.alarm)) {
+        if (it.alarm) {
+          row.classList.add('hasAlarm')
+          const chip = document.createElement('span')
+          chip.className = 'ichip'; chip.textContent = chipTime(it.alarm)
+          row.appendChild(chip)
+        }
+        const bell = document.createElement('button')
+        bell.className = 'bellbtn'; bell.tabIndex = -1; bell.title = '這一項的鬧鈴'
+        bell.innerHTML = bellBtnSvg
+        bell.onclick = (e) => openAlarmPop(`item:${i}`, e.clientX, e.clientY)
+        const rm = document.createElement('button')
+        rm.className = 'rm'; rm.textContent = '×'; rm.tabIndex = -1
+        rm.onclick = () => { items.splice(i, 1); renderTodo(); save() }
+        row.append(bell, rm)
       }
       todo.appendChild(row)
-    })
-    const ghost = document.createElement('div')
-    ghost.className = 'item ghost'
-    const gtick = document.createElement('div'); gtick.className = 'tick'
-    gtick.textContent = '＋'
-    const gi = document.createElement('input')
-    gi.placeholder = '新增項目，按 Enter'
-    gtick.onclick = () => gi.focus()
-    const commit = () => {
-      if (!gi.value.trim()) return
-      items.push({ text: gi.value, done: false })
-      renderTodo(); save()
-      todo.querySelector('.ghost input').focus()
     }
-    gi.onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) commit() }
-    gi.onblur = () => { if (gi.value.trim()) { items.push({ text: gi.value, done: false }); renderTodo(); save() } }
-    ghost.append(gtick, gi)
-    todo.appendChild(ghost)
     if (focusIndex !== undefined && todo.children[focusIndex]) {
       todo.children[focusIndex].querySelector('input').focus()
     }
   }
-  todo.addEventListener('click', (e) => {
-    if (e.target === todo) {
-      const gi = todo.querySelector('.ghost input')
-      if (gi) gi.focus()
-    }
+  let todoResizeT
+  window.addEventListener('resize', () => {
+    if (mode !== 'todo') return
+    clearTimeout(todoResizeT); todoResizeT = setTimeout(() => renderTodo(), 150)
   })
 
   // ---------- 週記 ----------

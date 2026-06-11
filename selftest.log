@@ -1,11 +1,11 @@
 
-[27248:0611/215602.401:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[27248:0611/215602.401:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[27248:0611/215602.401:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
-[27248:0611/215602.411:ERROR:disk_cache.cc(208)] Unable to create cache
-[27248:0611/215602.411:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
-[27248:0611/215602.411:ERROR:disk_cache.cc(208)] Unable to create cache
-[27248:0611/215602.411:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
-[27248:0611/215602.411:ERROR:disk_cache.cc(208)] Unable to create cache
-[27248:0611/215602.411:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
-PROBE: 42px || linear-gradient(to right, rgba(0, 0, 0, 0) 28px, rgba(196, 98, 74, 0.45) 28px, rgba(196, 98, 74, 0.45) 29.5px, rgba(0, 0, 0, 0) 29.5px), repeating-lin
+[23096:0611/220354.724:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[23096:0611/220354.725:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[23096:0611/220354.725:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[23096:0611/220354.735:ERROR:disk_cache.cc(208)] Unable to create cache
+[23096:0611/220354.735:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
+[23096:0611/220354.736:ERROR:disk_cache.cc(208)] Unable to create cache
+[23096:0611/220354.736:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
+[23096:0611/220354.736:ERROR:disk_cache.cc(208)] Unable to create cache
+[23096:0611/220354.736:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
+PROBE: 14px || repeating-linear-gradient(rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 27px, rgba(112, 105, 86, 0.45) 27px, rgba(112, 105, 86, 0.45) 28px)
