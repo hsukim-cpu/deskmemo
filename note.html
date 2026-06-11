@@ -13,9 +13,25 @@
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    background: var(--paper);
-    color: #4B4237;
+    /* 紙的光影：左上受光、右下微暗，墊在底色上 */
+    background:
+      linear-gradient(155deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 42%),
+      linear-gradient(335deg, rgba(92,74,28,.08) 0%, rgba(0,0,0,0) 38%),
+      var(--paper);
+    color: rgba(56,49,38,.92);
     display: flex; flex-direction: column;
+  }
+  /* 紙纖維顆粒（固定層、不擋滑鼠） */
+  #grain {
+    position: fixed; inset: 0; z-index: 8; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.06'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: multiply;
+  }
+  /* 右下捲角的落影（在折角下面） */
+  body::before {
+    content: ""; position: fixed; right: 0; bottom: 0;
+    width: 34px; height: 34px; pointer-events: none;
+    background: radial-gradient(circle at 100% 100%, rgba(0,0,0,.20), transparent 62%);
   }
   /* 右下折角 */
   body::after {
@@ -23,11 +39,14 @@
     width: 24px; height: 24px; pointer-events: none;
     background: linear-gradient(to top left, var(--fold) 50%, transparent 50.5%);
   }
-  body.collapsed::after { display: none; }
+  body.collapsed::before, body.collapsed::after { display: none; }
 
   .bar {
     height: 34px; flex: 0 0 34px; position: relative;
     -webkit-app-region: drag; user-select: none;
+    /* 便利貼頂端的背膠條：略深一階＋底緣一絲反光 */
+    background: linear-gradient(to bottom, rgba(86,68,22,.10), rgba(86,68,22,.04) 70%, rgba(86,68,22,0));
+    box-shadow: 0 1px 0 rgba(255,255,255,.35);
   }
   /* 紅色圖釘：釘上=壓在紙上；拔起=往上提、傾斜、影子拉遠 */
   #pin {
@@ -88,10 +107,14 @@
   #content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   body.collapsed #content { display: none; }
 
+  /* 手寫感：楷體（Mac 是 Kaiti TC、Windows 是標楷體），像用筆寫上去的 */
+  textarea, .item input {
+    font-family: "Kaiti TC", "DFKai-SB", "KaiTi", "BiauKai", "Noto Sans TC", sans-serif;
+  }
   textarea {
     flex: 1; border: none; outline: none; resize: none;
     background: transparent; padding: 10px 14px 24px;
-    font-size: 14px; line-height: 28px; color: inherit; font-family: inherit;
+    font-size: 15.5px; line-height: 28px; color: inherit;
   }
   textarea::placeholder { color: rgba(0,0,0,.25); }
   textarea.ruled {
@@ -99,6 +122,20 @@
     background-attachment: local;
     background-origin: content-box;
   }
+
+  /* 手寫模式 */
+  #draw { flex: 1; position: relative; display: none; }
+  #draw canvas { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+  #drawTools {
+    position: absolute; right: 10px; top: 36px; z-index: 6;
+    display: none; gap: 4px; -webkit-app-region: no-drag;
+  }
+  #drawTools button {
+    border: 1px solid rgba(0,0,0,.22); background: rgba(255,255,255,.45);
+    border-radius: 5px; font-size: 11px; font-family: inherit;
+    color: rgba(0,0,0,.6); padding: 2px 8px; cursor: pointer;
+  }
+  #drawTools button.on { background: rgba(0,0,0,.65); color: #FFF; border-color: transparent; }
 
   /* 清單模式 */
   #todo { flex: 1; overflow-y: auto; padding: 8px 10px 24px; display: none; }
@@ -115,7 +152,7 @@
   }
   .item input {
     flex: 1; border: none; background: transparent; outline: none;
-    font: inherit; font-size: 14px; color: inherit; min-width: 0;
+    font-size: 15.5px; color: inherit; min-width: 0;
   }
   .item.done input { text-decoration: line-through; color: rgba(0,0,0,.35); }
   .item .rm {
@@ -124,8 +161,14 @@
   }
   .item:hover .rm { opacity: 1; }
   .item .rm:hover { background: rgba(0,0,0,.08); color: #3B3328; }
-  .item.ghost .tick { border-style: dashed; background: transparent; cursor: default; }
-  .item.ghost input::placeholder { color: rgba(0,0,0,.25); }
+  /* 新增項目列：虛線框＋明顯的＋號，點了就能打字 */
+  .item.ghost .tick {
+    border-style: dashed; border-color: rgba(0,0,0,.35); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; line-height: 1; color: rgba(0,0,0,.5); cursor: text;
+    font-family: -apple-system, "Segoe UI", sans-serif;
+  }
+  .item.ghost input::placeholder { color: rgba(0,0,0,.32); }
 </style>
 </head>
 <body class="c-yellow">
@@ -135,6 +178,7 @@
       <option value="plain">空白</option>
       <option value="ruled">橫線</option>
       <option value="todo">清單</option>
+      <option value="draw">手寫</option>
     </select>
     <svg id="pin" viewBox="0 0 26 30" title="點一下拔起/釘上">
       <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
@@ -148,10 +192,17 @@
       <button id="del" title="刪除這張">×</button>
     </div>
   </div>
+  <div id="grain"></div>
   <div id="dots" class="ctrl"></div>
+  <div id="drawTools" class="ctrl">
+    <button id="penBtn" class="on">筆</button>
+    <button id="eraserBtn">橡皮擦</button>
+    <button id="clearBtn">清空</button>
+  </div>
   <div id="content">
     <textarea id="text" placeholder="寫點什麼…" spellcheck="false"></textarea>
     <div id="todo"></div>
+    <div id="draw"><canvas id="cv"></canvas></div>
   </div>
 <script>
   const { ipcRenderer } = require('electron')
@@ -174,8 +225,10 @@
   if (note.collapsed) { document.body.classList.add('collapsed'); foldBtn.textContent = '▾' }
   if (note.pinned === false) document.body.classList.add('unpinned')
 
+  let drawing = note.drawing || null
+
   let timer
-  const save = () => ipcRenderer.send('set-note', id, { content: ta.value, mode, items, color })
+  const save = () => ipcRenderer.send('set-note', id, { content: ta.value, mode, items, color, drawing })
   const saveSoon = () => { clearTimeout(timer); timer = setTimeout(save, 300) }
 
   function applyColor() {
@@ -195,10 +248,84 @@
   applyColor()
 
   function renderMode() {
-    ta.style.display = (mode === 'todo') ? 'none' : ''
+    ta.style.display = (mode === 'todo' || mode === 'draw') ? 'none' : ''
     todo.style.display = (mode === 'todo') ? 'block' : 'none'
+    draw.style.display = (mode === 'draw') ? 'block' : 'none'
+    drawTools.style.display = (mode === 'draw') ? 'flex' : 'none'
     ta.classList.toggle('ruled', mode === 'ruled')
     if (mode === 'todo') renderTodo()
+    if (mode === 'draw') requestAnimationFrame(resizeCanvas)
+  }
+
+  // ---------- 手寫 ----------
+  const draw = document.getElementById('draw')
+  const drawTools = document.getElementById('drawTools')
+  const cv = document.getElementById('cv')
+  const ctx = cv.getContext('2d')
+  const penBtn = document.getElementById('penBtn')
+  const eraserBtn = document.getElementById('eraserBtn')
+  let erasing = false
+
+  function resizeCanvas() {
+    const r = draw.getBoundingClientRect()
+    if (!r.width || !r.height) return
+    const dpr = window.devicePixelRatio || 1
+    const prev = drawing
+    cv.width = Math.round(r.width * dpr)
+    cv.height = Math.round(r.height * dpr)
+    cv.style.width = r.width + 'px'
+    cv.style.height = r.height + 'px'
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    if (prev) {
+      const img = new Image()
+      img.onload = () => ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr)
+      img.src = prev
+    }
+  }
+  let resizeT
+  window.addEventListener('resize', () => {
+    if (mode !== 'draw') return
+    clearTimeout(resizeT); resizeT = setTimeout(resizeCanvas, 150)
+  })
+
+  let pen = false, last = null
+  function strokeTo(x, y) {
+    ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over'
+    ctx.strokeStyle = 'rgba(52,45,34,.95)'
+    ctx.lineWidth = erasing ? 18 : 2.4
+    ctx.beginPath()
+    ctx.moveTo(last[0], last[1])
+    ctx.lineTo(x, y)
+    ctx.stroke()
+    last = [x, y]
+  }
+  cv.addEventListener('pointerdown', (e) => {
+    pen = true; cv.setPointerCapture(e.pointerId)
+    last = [e.offsetX, e.offsetY]; strokeTo(e.offsetX + 0.1, e.offsetY + 0.1)
+  })
+  cv.addEventListener('pointermove', (e) => { if (pen) strokeTo(e.offsetX, e.offsetY) })
+  const penUp = () => {
+    if (!pen) return
+    pen = false; last = null
+    drawing = cv.toDataURL('image/png')
+    save()
+  }
+  cv.addEventListener('pointerup', penUp)
+  cv.addEventListener('pointercancel', penUp)
+
+  const setEraser = (on) => {
+    erasing = on
+    penBtn.classList.toggle('on', !on)
+    eraserBtn.classList.toggle('on', on)
+  }
+  penBtn.onclick = () => setEraser(false)
+  eraserBtn.onclick = () => setEraser(true)
+  document.getElementById('clearBtn').onclick = () => {
+    if (!drawing || confirm('清空這張手寫便條？')) {
+      ctx.clearRect(0, 0, cv.width, cv.height)
+      drawing = null; save()
+    }
   }
 
   function renderTodo(focusIndex) {
@@ -233,8 +360,10 @@
     const ghost = document.createElement('div')
     ghost.className = 'item ghost'
     const gtick = document.createElement('div'); gtick.className = 'tick'
+    gtick.textContent = '＋'
     const gi = document.createElement('input')
-    gi.placeholder = '新增項目'
+    gi.placeholder = '新增項目，按 Enter'
+    gtick.onclick = () => gi.focus()
     const commit = () => {
       if (!gi.value.trim()) return
       items.push({ text: gi.value, done: false })
@@ -249,6 +378,14 @@
       todo.children[focusIndex].querySelector('input').focus()
     }
   }
+
+  // 點清單空白處＝直接開始新增
+  todo.addEventListener('click', (e) => {
+    if (e.target === todo) {
+      const gi = todo.querySelector('.ghost input')
+      if (gi) gi.focus()
+    }
+  })
 
   modeSel.onchange = () => {
     const next = modeSel.value
@@ -274,8 +411,21 @@
 
   document.getElementById('add').onclick = () => ipcRenderer.send('new-note')
   document.getElementById('del').onclick = () => {
-    const empty = mode === 'todo' ? !items.some(i => i.text.trim()) : ta.value.trim() === ''
+    const empty = mode === 'todo' ? !items.some(i => i.text.trim())
+      : mode === 'draw' ? !drawing
+      : ta.value.trim() === ''
     if (empty || confirm('刪除這張便利貼？')) ipcRenderer.send('delete-note', id)
+  }
+
+  // selftest 截圖用：示範手寫筆跡
+  if (id && id.startsWith('demo') && mode === 'draw' && !drawing) {
+    setTimeout(() => {
+      ctx.strokeStyle = 'rgba(52,45,34,.95)'; ctx.lineWidth = 2.4
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+      ctx.beginPath(); ctx.moveTo(28, 64); ctx.bezierCurveTo(64, 18, 96, 104, 130, 58); ctx.bezierCurveTo(160, 22, 190, 96, 222, 56); ctx.stroke()
+      ctx.beginPath(); ctx.arc(64, 132, 24, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(104, 120); ctx.lineTo(196, 120); ctx.moveTo(104, 146); ctx.lineTo(170, 146); ctx.stroke()
+    }, 600)
   }
 
   renderMode()

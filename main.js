@@ -41,9 +41,10 @@ function saveNotes() {
 }
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-// 清單模式：有沒打勾的項目才算未處理；其他模式：有字就算
+// 清單：有沒打勾的項目才算未處理；手寫：有筆跡就算；其他：有字就算
 const notePending = n => n.mode === 'todo'
   ? (n.items || []).some(i => i.text && i.text.trim() && !i.done)
+  : n.mode === 'draw' ? !!n.drawing
   : !!(n.content && n.content.trim())
 const hasPending = () => notes.some(notePending)
 const pendingCount = () => notes.filter(notePending).length
@@ -123,6 +124,7 @@ ipcMain.on('set-note', (e, id, payload) => {
   note.mode = payload.mode
   note.items = payload.items
   note.color = payload.color
+  note.drawing = payload.drawing
   saveNotes()
 })
 
@@ -234,7 +236,8 @@ async function selftest() {
         { text: '下午寄出 #4384', done: false },
         { text: '訂貨清單給齊', done: false }
       ]
-    }
+    },
+    { id: 'demo3', mode: 'draw', color: 'blue', content: '' }
   ]
   notes.forEach((n, i) => { const p = defaultPosition(i); n.x = p.x - i * 300; n.y = p.y })
   notes.forEach(createNoteWindow)
@@ -243,10 +246,12 @@ async function selftest() {
   fs.writeFileSync(path.join(__dirname, 'note-preview.png'), img1.toPNG())
   const img2 = await noteWindows.get('demo2').webContents.capturePage()
   fs.writeFileSync(path.join(__dirname, 'todo-preview.png'), img2.toPNG())
+  const img3 = await noteWindows.get('demo3').webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'draw-preview.png'), img3.toPNG())
   const w = showWarning('shutdown')
   await sleep(1500)
-  const img3 = await w.webContents.capturePage()
-  fs.writeFileSync(path.join(__dirname, 'warning-preview.png'), img3.toPNG())
+  const img4 = await w.webContents.capturePage()
+  fs.writeFileSync(path.join(__dirname, 'warning-preview.png'), img4.toPNG())
   app.exit(0)
 }
 
