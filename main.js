@@ -20,7 +20,7 @@ const BAR_H = 34 + MARGIN * 2
 
 let notes = []                  // { id, content, x, y, width, height, collapsed }
 let deleted = []                // 最近刪除的便利貼（保險用，最多留 50 筆）
-let settings = { dailyReminder: '18:00', lastDailyFired: null }  // 下班鬧鈴
+let settings = { dailyReminder: '18:00', lastDailyFired: null, autoLaunchSet: false }  // 下班鬧鈴
 let dailySnoozeUntil = 0
 const noteWindows = new Map()   // id -> BrowserWindow
 let tray = null
@@ -461,6 +461,13 @@ async function selftest() {
 app.whenReady().then(() => {
   if (SELFTEST) { selftest(); return }
   loadNotes()
+  // 第一次啟動就預設「開機自動啟動」——便利貼要重開機還在才有意義。
+  // 只設一次（autoLaunchSet 旗標），之後尊重使用者在系統列的勾選
+  if (!settings.autoLaunchSet && !process.defaultApp) {
+    app.setLoginItemSettings({ openAtLogin: true })
+    settings.autoLaunchSet = true
+    saveNotes()
+  }
   setupTray()
   setupPowerWatch()
   if (notes.length) notes.forEach(createNoteWindow)
