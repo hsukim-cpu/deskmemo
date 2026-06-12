@@ -2,8 +2,18 @@
 // 所以圖示改在打包後用 rcedit 自己嵌進 DeskMemo.exe
 const path = require('path')
 const fs = require('fs')
+const { execSync } = require('child_process')
 
 module.exports = async (context) => {
+  // macOS：補 ad-hoc 簽章。Apple 晶片拒跑「零簽章」程式，
+  // 沒這步 M 系列 Mac 連打都打不開（2026-06-12 同事實測教訓）
+  if (context.electronPlatformName === 'darwin') {
+    const appPath = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
+    execSync(`codesign --force --deep --sign - "${appPath}"`, { stdio: 'inherit' })
+    execSync(`codesign --verify --deep "${appPath}"`, { stdio: 'inherit' })
+    console.log('  • afterPack: ad-hoc codesign done ->', appPath)
+    return
+  }
   if (context.electronPlatformName !== 'win32') return
   const { rcedit } = require('rcedit')
   const exe = path.join(context.appOutDir, 'DeskMemo.exe')
