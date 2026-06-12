@@ -20,6 +20,8 @@ const BAR_H = 34 + MARGIN * 2
 
 let notes = []                  // { id, content, x, y, width, height, collapsed }
 let deleted = []                // 最近刪除的便利貼（保險用，最多留 50 筆）
+let settings = { dailyReminder: '18:00', lastDailyFired: null }  // 下班鬧鈴
+let dailySnoozeUntil = 0
 const noteWindows = new Map()   // id -> BrowserWindow
 let tray = null
 let allowQuit = false
@@ -33,13 +35,14 @@ function loadNotes() {
     const data = JSON.parse(fs.readFileSync(dataFile(), 'utf8'))
     notes = data.notes || []
     deleted = data.deleted || []
+    settings = Object.assign(settings, data.settings || {})
   } catch { notes = []; deleted = [] }
 }
 
 function saveNotes() {
   if (SELFTEST) return
   try {
-    fs.writeFileSync(dataFile(), JSON.stringify({ notes, deleted: deleted.slice(0, 50) }, null, 2))
+    fs.writeFileSync(dataFile(), JSON.stringify({ notes, deleted: deleted.slice(0, 50), settings }, null, 2))
   } catch (e) { console.error('save failed', e) }
 }
 
@@ -258,6 +261,7 @@ function checkAlarms() {
 }
 
 ipcMain.on('alarm-snooze', (e, id, key) => {
+  if (key === 'daily') { dailySnoozeUntil = Date.now() + 10 * 60 * 1000; return }
   const note = notes.find(n => n.id === id)
   if (!note) return
   const t = new Date(Date.now() + 10 * 60 * 1000).toISOString()
@@ -292,6 +296,16 @@ function setupPowerWatch() {
       setTimeout(() => showWarning('resume'), 1500)
     }
   })
+  // 鎖定螢幕（通常是離開座位的前一刻）：先嗶聲，解鎖時跳警示
+  powerMonitor.on('lock-screen', () => {
+    if (hasPending()) { shell.beep(); warnAfterResume = true }
+  })
+  powerMonitor.on('unlock-screen', () => {
+    if (warnAfterResume) {
+      warnAfterResume = false
+      setTimeout(() => showWarning('resume'), 1200)
+    }
+  })
   // 關機（macOS / Linux 會收到這個事件，可短暫攔下）
   powerMonitor.on('shutdown', (e) => {
     if (!allowQuit && hasPending()) {
@@ -300,6 +314,24 @@ function setupPowerWatch() {
       showWarning('shutdown')
     }
   })
+}
+
+// 下班鬧鈴：固定時間還有未完成事項就響（每天最多一次，可貪睡 10 分）
+function checkDailyReminder() {
+  if (!settings.dailyReminder) return
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const snoozeDue = dailySnoozeUntil && Date.now() >= dailySnoozeUntil
+  const timeDue = hhmm === settings.dailyReminder && settings.lastDailyFired !== today
+  if (!timeDue && !snoozeDue) return
+  dailySnoozeUntil = 0
+  if (!hasPending()) { settings.lastDailyFired = today; saveNotes(); return }
+  settings.lastDailyFired = today
+  saveNotes()
+  shell.beep()
+  const first = notes.find(notePending)
+  showAlarm(first ? first.id : '', `今天還有 ${pendingCount()} 件沒完成`, 'daily')
 }
 
 // 關掉程式（含 Windows 關機時系統要求程式結束）也攔
@@ -313,10 +345,11 @@ app.on('before-quit', (e) => {
 // 便利貼全收掉也不退出，靠系統列圖示活著
 app.on('window-all-closed', () => {})
 
-function setupTray() {
-  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon-32.png'))
-  tray = new Tray(icon)
-  tray.setToolTip('桌面便利貼')
+function buildTrayMenu() {
+  const dailyOpt = (label, value) => ({
+    label, type: 'radio', checked: settings.dailyReminder === value,
+    click: () => { settings.dailyReminder = value; saveNotes(); buildTrayMenu() }
+  })
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '新增便利貼', click: () => addNote() },
     {
@@ -328,6 +361,18 @@ function setupTray() {
     },
     { type: 'separator' },
     {
+      label: '下班提醒',
+      submenu: [
+        dailyOpt('關閉', null),
+        dailyOpt('17:00', '17:00'),
+        dailyOpt('17:30', '17:30'),
+        dailyOpt('18:00', '18:00'),
+        dailyOpt('18:30', '18:30'),
+        dailyOpt('19:00', '19:00'),
+        dailyOpt('20:00', '20:00')
+      ]
+    },
+    {
       label: '開機自動啟動', type: 'checkbox',
       checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
@@ -335,6 +380,13 @@ function setupTray() {
     { type: 'separator' },
     { label: '結束', click: () => app.quit() }
   ]))
+}
+
+function setupTray() {
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon-32.png'))
+  tray = new Tray(icon)
+  tray.setToolTip('桌面便利貼')
+  buildTrayMenu()
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
@@ -416,4 +468,5 @@ app.whenReady().then(() => {
   // 鬧鈴排程：開機 5 秒後先補查一次（程式關著時錯過的也會響），之後每 20 秒查一次
   setTimeout(checkAlarms, 5000)
   setInterval(checkAlarms, 20000)
+  setInterval(checkDailyReminder, 20000)
 })
