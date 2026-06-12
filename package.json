@@ -1,6 +1,6 @@
 {
   "name": "desktop-sticky-notes",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "跨平台桌面便利貼：置頂、可收合、闔蓋/關機警示",
   "main": "main.js",
   "scripts": {
@@ -20,6 +20,7 @@
       "note.html",
       "warning.html",
       "alarm.html",
+      "update.html",
       "assets/**"
     ],
     "win": {

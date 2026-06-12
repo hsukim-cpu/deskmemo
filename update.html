@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: transparent !important; border: none !important;
+    padding: 12px; display: flex;
+    color: #3F3B33;
+  }
+  #paper::after {
+    content: ""; position: absolute; right: 0; bottom: 0;
+    width: 28px; height: 28px; pointer-events: none;
+    background: linear-gradient(to top left, #DFD8C6 50%, transparent 50.5%);
+  }
+  #pin {
+    position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+    width: 28px; height: 32px;
+    filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.3));
+  }
+  .card { text-align: center; padding: 24px; max-width: 92%; }
+  .title { font-size: 15px; letter-spacing: 3px; color: #5E5346; font-weight: 700; }
+  .text { margin-top: 12px; font-size: 22px; font-weight: 700; line-height: 1.5; }
+  .hint { margin-top: 8px; font-size: 13px; color: rgba(0,0,0,.55); line-height: 1.6; }
+  .actions { margin-top: 20px; display: flex; gap: 12px; justify-content: center; }
+  button {
+    border: none; border-radius: 7px; padding: 10px 22px;
+    font-size: 14px; font-family: inherit; cursor: pointer; letter-spacing: 1px;
+  }
+  #dl { background: #3F3B33; color: #F5F1E6; font-weight: 700; }
+  #dl:hover { background: #5E5346; }
+  #later { background: transparent; color: rgba(0,0,0,.5); border: 1px solid rgba(0,0,0,.25); }
+  #later:hover { color: #3F3B33; border-color: rgba(0,0,0,.5); }
+  #paper {
+    flex: 1; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 42%),
+      #F5F1E6;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.18)) drop-shadow(0 7px 16px rgba(0,0,0,.26));
+    clip-path: polygon(1px 1.4px, 30% 0.2px, 60% 1.2px, calc(100% - 1.2px) 1.6px, 100% 30%, calc(100% - 1.4px) 60%, calc(100% - 1.6px) calc(100% - 1.2px), 60% calc(100% - 0.3px), 28% calc(100% - 1.5px), 0.6px calc(100% - 1.6px), 1.5px 66%, 0px 33%);
+  }
+</style>
+</head>
+<body>
+  <div id="paper">
+  <svg id="pin" viewBox="0 0 26 30">
+    <line x1="13" y1="13" x2="13" y2="27" stroke="#9A9A9A" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="13" cy="9" r="7.5" fill="#D8413C"/>
+    <circle cx="13" cy="9" r="7.5" fill="none" stroke="#B22F2B" stroke-width="1"/>
+    <circle cx="10.5" cy="6.5" r="2.4" fill="#F08A86"/>
+  </svg>
+  <div class="card">
+    <div class="title">有新版本</div>
+    <div class="text" id="text"></div>
+    <div class="hint" id="hint">點「下載新版」會開始下載安裝檔，下載完打開照原本的方式安裝即可，便利貼內容都會保留。</div>
+    <div class="actions">
+      <button id="dl">下載新版</button>
+      <button id="later">之後再說</button>
+    </div>
+  </div>
+<script>
+  const { ipcRenderer } = require('electron')
+  const q = new URLSearchParams(location.search)
+  document.getElementById('text').textContent = 'DeskMemo ' + (q.get('ver') || '')
+  if (process.platform === 'darwin') {
+    document.getElementById('hint').textContent = '點「下載新版」會開始下載安裝檔，打開後把 DeskMemo 拖進「應用程式」按取代即可，便利貼內容都會保留。'
+  }
+  document.getElementById('dl').onclick = () => {
+    ipcRenderer.send('update-download', q.get('url'))
+    window.close()
+  }
+  document.getElementById('later').onclick = () => window.close()
+</script>
+  </div>
+</body>
+</html>

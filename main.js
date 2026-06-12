@@ -334,6 +334,51 @@ function checkDailyReminder() {
   showAlarm(first ? first.id : '', `今天還有 ${pendingCount()} 件沒完成`, 'daily')
 }
 
+// ---------- 新版提醒 ----------
+// 沒有付費簽章做不了真自動更新（macOS 的 Squirrel 要求正式簽章），
+// 改成定期看 GitHub 最新版號，有新版就跳紙條請使用者自己下載安裝
+const REPO = 'hsukim-cpu/deskmemo'
+let updateWin = null
+let updateDismissed = ''   // 按過「之後再說」的版號，這次開機內不再吵；重開程式會再提醒
+
+function updateDownloadUrl() {
+  const base = `https://github.com/${REPO}/releases/latest/download/`
+  if (process.platform === 'darwin') return base + (process.arch === 'arm64' ? 'DeskMemo-arm64.dmg' : 'DeskMemo-x64.dmg')
+  return base + 'DeskMemo-Setup.exe'
+}
+
+function isNewerVersion(tag, current) {
+  const num = v => String(v).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0)
+  const a = num(tag), b = num(current)
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i]
+  return false
+}
+
+async function checkUpdate() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+      headers: { 'User-Agent': 'DeskMemo', Accept: 'application/vnd.github+json' }
+    })
+    if (!res.ok) return
+    const tag = (await res.json()).tag_name
+    if (!tag || !isNewerVersion(tag, app.getVersion())) return
+    if (tag === updateDismissed) return
+    if (updateWin && !updateWin.isDestroyed()) return
+    updateWin = new BrowserWindow({
+      width: 464, height: 304,
+      frame: false, transparent: true, resizable: false, skipTaskbar: true, alwaysOnTop: true,
+      webPreferences: { nodeIntegration: true, contextIsolation: false }
+    })
+    updateWin.center()
+    updateWin.loadFile('update.html', { query: { ver: tag, url: updateDownloadUrl() } })
+    updateWin.on('closed', () => { updateDismissed = tag; updateWin = null })
+  } catch {} // 沒網路、API 失敗都安靜跳過，下次再查
+}
+
+ipcMain.on('update-download', (e, url) => {
+  if (typeof url === 'string' && url.startsWith(`https://github.com/${REPO}/`)) shell.openExternal(url)
+})
+
 // 關掉程式（含 Windows 關機時系統要求程式結束）也攔
 app.on('before-quit', (e) => {
   if (allowQuit || !hasPending()) return
@@ -476,4 +521,7 @@ app.whenReady().then(() => {
   setTimeout(checkAlarms, 5000)
   setInterval(checkAlarms, 20000)
   setInterval(checkDailyReminder, 20000)
+  // 新版提醒：開機 30 秒後查一次，之後每 4 小時查一次
+  setTimeout(checkUpdate, 30000)
+  setInterval(checkUpdate, 4 * 60 * 60 * 1000)
 })
