@@ -57,6 +57,19 @@
   }
   body.collapsed #paper::before, body.collapsed #paper::after { display: none; }
 
+  /* 右下角縮放把手（frameless+transparent 視窗 OS 邊框難抓，改用看得到的把手） */
+  #szgrip {
+    position: absolute; right: 0; bottom: 0; width: 24px; height: 24px;
+    z-index: 9; cursor: nwse-resize; -webkit-app-region: no-drag;
+  }
+  #szgrip::after {
+    content: ""; position: absolute; right: 3px; bottom: 3px; width: 10px; height: 10px;
+    border-right: 2px solid rgba(60,50,30,.35); border-bottom: 2px solid rgba(60,50,30,.35);
+    border-bottom-right-radius: 3px; transition: border-color .15s;
+  }
+  #szgrip:hover::after { border-color: rgba(60,50,30,.65); }
+  body.collapsed #szgrip { display: none; }
+
   .bar {
     height: 34px; flex: 0 0 34px; position: relative;
     -webkit-app-region: drag; user-select: none;
@@ -331,7 +344,7 @@
   }
   .mcell .mtext {
     position: absolute; inset: 11px 1px 1px 2px; outline: none;
-    font-size: 9px; line-height: 1.35; color: inherit; overflow: hidden;
+    font-size: calc(var(--note-fs) * .55); line-height: 1.35; color: inherit; overflow: hidden;
     font-family: var(--note-font);
   }
   .mcell.today .mday { background: rgba(0,0,0,.6); color: #FFF; border-color: transparent; }
@@ -506,6 +519,7 @@
         </div>
       </div>
     </div>
+    <div id="szgrip" title="拖這個角調整大小"></div>
   </div>
 <script>
   const { ipcRenderer } = require('electron')
@@ -1177,6 +1191,27 @@
       ctx.beginPath(); ctx.arc(64, 132, 24, 0, Math.PI * 2); ctx.stroke()
       ctx.beginPath(); ctx.moveTo(104, 120); ctx.lineTo(196, 120); ctx.moveTo(104, 146); ctx.lineTo(170, 146); ctx.stroke()
     }, 600)
+  }
+
+  // 右下角把手：拖曳調整視窗大小（frameless+transparent 的 OS 邊框難抓，改用自訂把手）
+  const szgrip = document.getElementById('szgrip')
+  if (szgrip) {
+    szgrip.addEventListener('mousedown', (e) => {
+      e.preventDefault()
+      const sx = e.screenX, sy = e.screenY
+      const sw = window.innerWidth, sh = window.innerHeight
+      const move = (ev) => {
+        const w = Math.max(248, sw + (ev.screenX - sx))
+        const h = Math.max(150, sh + (ev.screenY - sy))
+        ipcRenderer.send('resize-note', id, Math.round(w), Math.round(h))
+      }
+      const up = () => {
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', up)
+      }
+      window.addEventListener('mousemove', move)
+      window.addEventListener('mouseup', up)
+    })
   }
 
   renderMode()

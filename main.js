@@ -176,6 +176,19 @@ ipcMain.on('toggle-collapse', (e, id) => {
   saveNotes()
 })
 
+let resizeSaveT
+ipcMain.on('resize-note', (e, id, w, h) => {
+  const note = notes.find(n => n.id === id)
+  const win = noteWindows.get(id)
+  if (!note || !win || note.collapsed) return
+  const b = win.getBounds()
+  const nw = Math.max(248, Math.round(w))
+  const nh = Math.max(150, Math.round(h))
+  win.setBounds({ x: b.x, y: b.y, width: nw, height: nh })
+  note.width = nw; note.height = nh
+  clearTimeout(resizeSaveT); resizeSaveT = setTimeout(saveNotes, 400)
+})
+
 ipcMain.on('new-note', () => addNote())
 
 ipcMain.on('delete-note', (e, id) => {
