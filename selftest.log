@@ -1,3 +1,12 @@
 
+[25944:0615/150006.494:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[25944:0615/150006.494:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[25944:0615/150006.494:ERROR:cache_util_win.cc(20)] Unable to move the cache: 存取被拒。 (0x5)
+[25944:0615/150006.502:ERROR:disk_cache.cc(208)] Unable to create cache
+[25944:0615/150006.502:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
+[25944:0615/150006.502:ERROR:disk_cache.cc(208)] Unable to create cache
+[25944:0615/150006.502:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
+[25944:0615/150006.502:ERROR:disk_cache.cc(208)] Unable to create cache
+[25944:0615/150006.502:ERROR:gpu_disk_cache.cc(713)] Gpu Cache Creation failed: -2
 PROBE: 14px || repeating-linear-gradient(rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 27px, rgba(112, 105, 86, 0.45) 27px, rgba(112, 105, 86, 0.45) 28px)
 PROBE8: repeating-linear-gradient(rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0

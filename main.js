@@ -20,7 +20,7 @@ const BAR_H = 34 + MARGIN * 2
 
 let notes = []                  // { id, content, x, y, width, height, collapsed }
 let deleted = []                // 最近刪除的便利貼（保險用，最多留 50 筆）
-let settings = { dailyReminder: '18:00', lastDailyFired: null, autoLaunchSet: false }  // 下班鬧鈴
+let settings = { dailyReminder: '18:00', lastDailyFired: null, autoLaunch: true }  // 下班鬧鈴；autoLaunch=想要開機自啟（預設開）
 let dailySnoozeUntil = 0
 const noteWindows = new Map()   // id -> BrowserWindow
 let tray = null
@@ -44,6 +44,19 @@ function saveNotes() {
   try {
     fs.writeFileSync(dataFile(), JSON.stringify({ notes, deleted: deleted.slice(0, 50), settings }, null, 2))
   } catch (e) { console.error('save failed', e) }
+}
+
+// 開機自啟自我修復：每次啟動對照「想要的狀態(settings.autoLaunch)」和「實際登錄檔」，
+// 不一致就補設。這樣即使某次被防毒/SAC/清理工具擋掉或刪掉，下次開程式就會自動修回來。
+// 舊版用一次性旗標(autoLaunchSet)設過就不管，被擋一次就永久失效——這裡換掉。
+function syncAutoLaunch() {
+  if (process.defaultApp) return  // 開發模式(electron .)不要去動真正的 Run 登錄檔
+  try {
+    const want = settings.autoLaunch !== false
+    if (app.getLoginItemSettings().openAtLogin !== want) {
+      app.setLoginItemSettings({ openAtLogin: want, path: process.execPath })
+    }
+  } catch (e) { console.error('autolaunch sync failed', e) }
 }
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -433,7 +446,7 @@ function buildTrayMenu() {
     {
       label: '開機自動啟動', type: 'checkbox',
       checked: app.getLoginItemSettings().openAtLogin,
-      click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked })
+      click: (item) => { settings.autoLaunch = item.checked; saveNotes(); syncAutoLaunch() }
     },
     { type: 'separator' },
     { label: '結束', click: () => app.quit() }
@@ -519,13 +532,8 @@ async function selftest() {
 app.whenReady().then(() => {
   if (SELFTEST) { selftest(); return }
   loadNotes()
-  // 第一次啟動就預設「開機自動啟動」——便利貼要重開機還在才有意義。
-  // 只設一次（autoLaunchSet 旗標），之後尊重使用者在系統列的勾選
-  if (!settings.autoLaunchSet && !process.defaultApp) {
-    app.setLoginItemSettings({ openAtLogin: true })
-    settings.autoLaunchSet = true
-    saveNotes()
-  }
+  // 開機自啟：每次啟動都自我修復（對照想要的狀態補回登錄檔），被擋一次也不會永久失效。
+  syncAutoLaunch()
   setupTray()
   setupPowerWatch()
   if (notes.length) notes.forEach(createNoteWindow)
