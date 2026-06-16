@@ -60,11 +60,21 @@ function syncAutoLaunch() {
 }
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+// 鬧鐘排在「未來某一天」（非今天）→ 今天先別當待辦、別提醒；等那天鬧鐘響過自然恢復。
+// 只比日期：設今天稍晚（如今天 18:00）仍算今天待辦照提醒；設明天以後才今天不吵。
+const isFutureDay = iso => {
+  if (!iso) return false
+  const a = new Date(iso); if (isNaN(a)) return false
+  const now = new Date()
+  const day = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  return day(a) > day(now)
+}
 // 列表：有沒打勾的項目才算未處理；手寫：有筆跡就算；空白/橫線：有字就算
 // 週記/月記/單字卡是「常駐筆記本」，不算待辦、不觸發關機警示
 const notePending = n => {
   if (n.mode === 'week' || n.mode === 'month' || n.mode === 'cards') return false
-  if (n.mode === 'todo') return (n.items || []).some(i => i.text && i.text.trim() && !i.done)
+  if (isFutureDay(n.alarm)) return false  // 整張便利貼排到未來某天 → 今天不提醒
+  if (n.mode === 'todo') return (n.items || []).some(i => i.text && i.text.trim() && !i.done && !isFutureDay(i.alarm))
   if (n.mode === 'draw') return !!n.drawing
   return !!(n.content && n.content.trim())
 }
