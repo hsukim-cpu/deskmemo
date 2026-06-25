@@ -1,11 +1,9 @@
 // 唸記帳 service worker — 離線快取 app shell
-const CACHE = 'saymoney-v3';
+const CACHE = 'saymoney-v4';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-180.png',
-  './icon-192.png',
   './icon-512.png'
 ];
 self.addEventListener('install', e => {
