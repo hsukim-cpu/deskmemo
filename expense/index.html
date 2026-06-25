@@ -281,7 +281,7 @@ function parse(text){
 
 /* ============ 語音：點一下→講→自動記帳（Web Speech 支援時） ============ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec=null, listening=false;
+let rec=null, listening=false, pasteMode=false;
 const recBtn=document.getElementById('recBtn');
 const recLabel=document.getElementById('recLabel');
 const rawEl=document.getElementById('raw');
@@ -312,7 +312,25 @@ function startRec(){
     rec.start(); setLive(true);
   }catch(e){ setLive(false); manualBox.open=true; rawEl.focus(); }
 }
-recBtn.addEventListener('click',()=>{ if(listening){ try{rec.stop()}catch(e){} } else startRec(); });
+recBtn.addEventListener('click',()=>{
+  if(pasteMode){ doPaste(); return; }
+  if(listening){ try{rec.stop()}catch(e){} } else startRec();
+});
+
+/* 由捷徑帶來的「貼上記帳」：讀剪貼簿→解析→自動記 */
+function doPaste(){
+  if(!(navigator.clipboard && navigator.clipboard.readText)){
+    pasteMode=false; manualBox.open=true; rawEl.focus(); toast('此裝置請用手動輸入'); return;
+  }
+  navigator.clipboard.readText().then(t=>{
+    t=(t||'').trim();
+    if(!t){ toast('剪貼簿是空的，再試一次'); return; }
+    const r=parse(t);
+    pasteMode=false; recLabel.textContent='點一下，說出花費';
+    if(r.amount!=null){ commitDirect(r); }
+    else{ rawEl.value=t; rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px'; manualBox.open=true; doParse(); }
+  }).catch(()=>{ toast('要按「允許貼上」才能記帳'); });
+}
 
 /* 直接記帳（語音解析成功時，不用按確認；附「撤銷」） */
 function commitDirect(r){
@@ -460,6 +478,12 @@ render();
 (function(){
   try{
     const p=new URLSearchParams(location.search);
+    if(p.get('paste')==='1'){
+      pasteMode=true;
+      recLabel.textContent='點一下，貼上剛剛說的話';
+      history.replaceState(null,'',location.pathname);
+      return;
+    }
     const said=p.get('say')||p.get('t')||p.get('text');
     if(said && said.trim()){
       const r=parse(said.trim());
