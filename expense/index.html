@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="唸記帳">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-512.png">
 <style>
   :root{
     --paper:#f4f1ea; --card:#fcfbf7; --soft:#efeae0; --tint:#eee7da; --line:#e4ddcf;
@@ -414,6 +414,21 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 rawEl.addEventListener('input',()=>{ rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px'; });
 
 render();
+
+/* 由捷徑/小工具帶入語音文字：?say=午餐120 → 自動解析、跳出確認卡 */
+(function(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const said=p.get('say')||p.get('t')||p.get('text');
+    if(said && said.trim()){
+      rawEl.value=said.trim();
+      rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px';
+      doParse();
+      // 清掉網址參數，避免重整時重複帶入
+      history.replaceState(null,'',location.pathname);
+    }
+  }catch(e){}
+})();
 
 /* Service Worker：離線可用 */
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }

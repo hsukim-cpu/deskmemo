@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="116" fill="#f4f1ea"/>
-  <rect x="8" y="8" width="496" height="496" rx="110" fill="none" stroke="#e4ddcf" stroke-width="4"/>
-  <!-- 麥克風（炭墨細線，無印感） -->
+  <!-- 滿版不留透明：iOS 會自己把四角切圓 -->
+  <rect x="0" y="0" width="512" height="512" fill="#f4f1ea"/>
+  <!-- 麥克風（炭墨細線，置中） -->
   <g fill="none" stroke="#403b34" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="206" y="120" width="100" height="170" rx="50"/>
-    <path d="M150 250 a106 106 0 0 0 212 0"/>
-    <path d="M256 356 v52"/>
-    <path d="M198 408 h116"/>
+    <rect x="206" y="150" width="100" height="160" rx="50"/>
+    <path d="M156 270 a100 100 0 0 0 200 0"/>
+    <path d="M256 370 v44"/>
+    <path d="M202 414 h108"/>
   </g>
 </svg>
