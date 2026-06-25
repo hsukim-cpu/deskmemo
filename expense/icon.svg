@@ -1,20 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#16302a"/>
-      <stop offset="1" stop-color="#0f1115"/>
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef1ff"/>
     </linearGradient>
-    <linearGradient id="mic" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5ce0aa"/>
-      <stop offset="1" stop-color="#36b083"/>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5a6cff"/>
+      <stop offset="1" stop-color="#9b5cff"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <!-- 麥克風 -->
-  <rect x="216" y="120" width="80" height="150" rx="40" fill="url(#mic)"/>
-  <path d="M176 250 a80 80 0 0 0 160 0" fill="none" stroke="url(#mic)" stroke-width="20" stroke-linecap="round"/>
-  <rect x="246" y="330" width="20" height="46" rx="10" fill="url(#mic)"/>
-  <rect x="206" y="372" width="100" height="20" rx="10" fill="url(#mic)"/>
-  <!-- 金額符號 -->
-  <text x="256" y="190" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="96" font-weight="800" fill="#06281d" text-anchor="middle">$</text>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="112" fill="none" stroke="#e6e9f3" stroke-width="3"/>
+  <!-- 麥克風（線條，與 App 內一致） -->
+  <g fill="none" stroke="url(#acc)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="206" y="120" width="100" height="170" rx="50"/>
+    <path d="M150 250 a106 106 0 0 0 212 0"/>
+    <path d="M256 356 v52"/>
+    <path d="M198 408 h116"/>
+  </g>
 </svg>
