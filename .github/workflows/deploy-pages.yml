@@ -1,0 +1,41 @@
+name: Deploy GitHub Pages
+
+# 把整個 repo 發佈到 GitHub Pages，讓「唸記帳」PWA 可在 iPhone 上開啟。
+# 網址：https://hsukim-cpu.github.io/deskmemo/expense/
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/iphone-voice-expense-tracker-3jisg6
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時只跑一個部署，新的取代排隊中的
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
