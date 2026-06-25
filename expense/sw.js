@@ -1,5 +1,5 @@
-// 唸記帳 service worker — 離線快取 app shell
-const CACHE = 'saymoney-v4';
+// 唸記帳 service worker — network-first，確保永遠拿到最新版（離線時才用快取）
+const CACHE = 'saymoney-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -15,13 +15,14 @@ self.addEventListener('activate', e => {
       .then(() => self.clients.claim())
   );
 });
+// 永遠先走網路，成功就順手更新快取；沒網路才退回快取
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
       return res;
-    }).catch(() => caches.match('./index.html')))
+    }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
   );
 });
