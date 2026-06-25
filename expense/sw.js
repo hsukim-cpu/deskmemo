@@ -1,5 +1,5 @@
 // 唸記帳 service worker — 離線快取 app shell
-const CACHE = 'saymoney-v1';
+const CACHE = 'saymoney-v3';
 const ASSETS = [
   './',
   './index.html',
