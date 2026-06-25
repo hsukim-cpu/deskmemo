@@ -45,24 +45,27 @@
   .sumbox .k{font-size:11px; color:var(--sub); letter-spacing:2px;}
   .sumbox .v{font-size:25px; font-weight:600; margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:.5px; color:var(--txt);}
 
-  .mic-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin:8px 0 20px;}
-  .caplabel{font-size:11px; color:var(--sub); letter-spacing:3px; text-transform:uppercase; margin:0 2px 14px;}
-  .mic-row{display:flex; gap:12px; align-items:stretch;}
-  #raw{flex:1 1 0; min-width:0; width:100%; background:var(--soft); color:var(--txt);
+  .mic-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 18px; margin:8px 0 20px; text-align:center;}
+  .bigrec{display:flex; align-items:center; justify-content:center; width:104px; height:104px; margin:4px auto 0;
+    border:none; border-radius:50%; background:var(--ink); color:var(--paper); transition:transform .12s, background .2s;}
+  .bigrec .i{width:46px; height:46px; stroke-width:1.6;}
+  .bigrec:active{transform:scale(.95);}
+  .bigrec.live{background:var(--accent); animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(176,122,91,.45)} 50%{box-shadow:0 0 0 16px rgba(176,122,91,0)}}
+  .reclabel{font-size:13.5px; color:var(--sub); letter-spacing:1px; margin:16px 0 2px; line-height:1.6;}
+  .manual{margin-top:18px; border-top:1px solid var(--line); padding-top:14px; text-align:left;}
+  .manual summary{font-size:12px; color:var(--faint); letter-spacing:2px; cursor:pointer; list-style:none; text-align:center;}
+  .manual summary::-webkit-details-marker{display:none;}
+  .manual[open] summary{margin-bottom:12px;}
+  #raw{width:100%; background:var(--soft); color:var(--txt);
     border:1px solid var(--line); border-radius:11px; padding:14px; font-size:17px; resize:none;
     min-height:56px; line-height:1.5; font-family:inherit; transition:border-color .15s, box-shadow .15s;}
   #raw:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accentSoft);}
   #raw::placeholder{color:var(--faint);}
-  .micbtn{width:58px; flex:0 0 auto; border:none; border-radius:11px; background:var(--ink);
-    color:var(--paper); display:flex; align-items:center; justify-content:center; font-size:23px; transition:transform .12s, background .2s;}
-  .micbtn:active{transform:scale(.95);}
-  .micbtn.live{background:var(--accent); animation:pulse 1.2s infinite;}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(176,122,91,.4)} 50%{box-shadow:0 0 0 11px rgba(176,122,91,0)}}
-  .hint{font-size:12.5px; color:var(--sub); margin-top:14px; line-height:1.7;}
-  .hint b{color:var(--txt); font-weight:600;}
-  .addbtn{width:100%; margin-top:15px; border:none; border-radius:11px; padding:15px;
+  .addbtn{width:100%; margin-top:12px; border:none; border-radius:11px; padding:15px;
     background:var(--ink); color:var(--paper); font-size:15px; font-weight:500; letter-spacing:5px; transition:opacity .15s;}
   .addbtn:active{opacity:.85;}
+  .mic-card .review{text-align:left;}
 
   /* 解析確認卡 */
   .review{background:var(--soft); border:1px solid var(--line); border-radius:13px; padding:16px; margin-top:16px; display:none;}
@@ -122,6 +125,8 @@
     background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:999px; font-size:14px; letter-spacing:1px;
     opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:50;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.act{pointer-events:auto;}
+  .toast .undo{margin-left:16px; color:#e7b07e; font-weight:600;}
 </style>
 </head>
 <body>
@@ -140,18 +145,16 @@
   </div>
 
   <div class="mic-card">
-    <div class="caplabel">語音輸入</div>
-    <div class="mic-row">
-      <textarea id="raw" rows="1" placeholder="點麥克風或鍵盤上的麥克風直接講，例如：午餐排骨飯 120"></textarea>
-      <button class="micbtn" id="micBtn" aria-label="語音">
-        <svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8.5 21h7"/></svg>
-      </button>
-    </div>
-    <button class="addbtn" id="parseBtn">記一筆</button>
-    <div class="hint" id="hint">
-      在 iPhone 上：點輸入框，再點鍵盤左下角的麥克風講話最準。<br>
-      講法隨意，<b>咖啡 65</b>、<b>捷運二十</b>、<b>買衣服花了三百五</b> 都可以。
-    </div>
+    <button class="bigrec" id="recBtn" aria-label="開始說話">
+      <svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8.5 21h7"/></svg>
+    </button>
+    <div class="reclabel" id="recLabel">點一下，說出花費</div>
+
+    <details class="manual">
+      <summary>手動輸入</summary>
+      <textarea id="raw" rows="1" placeholder="例如：午餐排骨飯 120"></textarea>
+      <button class="addbtn" id="parseBtn">記一筆</button>
+    </details>
 
     <!-- 解析確認卡 -->
     <div class="review" id="review">
@@ -276,23 +279,50 @@ function parse(text){
   return {amount, cat, note, raw};
 }
 
-/* ============ 語音（Web Speech，支援的瀏覽器才用） ============ */
+/* ============ 語音：點一下→講→自動記帳（Web Speech 支援時） ============ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec=null, listening=false;
-const micBtn=document.getElementById('micBtn');
+const recBtn=document.getElementById('recBtn');
+const recLabel=document.getElementById('recLabel');
 const rawEl=document.getElementById('raw');
+const manualBox=document.querySelector('.manual');
+
+function setLive(b){
+  listening=b; recBtn.classList.toggle('live',b);
+  recLabel.textContent = b ? '聆聽中…說完停一下就好' : '點一下，說出花費';
+}
 function startRec(){
-  if(!SR){ rawEl.focus(); toast('此瀏覽器請用鍵盤的麥克風聽寫'); return; }
+  if(!SR){ manualBox.open=true; rawEl.focus(); toast('此裝置請用下方手動輸入'); return; }
   try{
     rec=new SR(); rec.lang='zh-TW'; rec.interimResults=true; rec.continuous=false;
     let finalText='';
-    rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; rawEl.value=t; finalText=t; };
-    rec.onend=()=>{ listening=false; micBtn.classList.remove('live'); if(finalText.trim()) doParse(); };
-    rec.onerror=()=>{ listening=false; micBtn.classList.remove('live'); rawEl.focus(); };
-    rec.start(); listening=true; micBtn.classList.add('live');
-  }catch(e){ rawEl.focus(); }
+    rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; finalText=t; recLabel.textContent=t||'聆聽中…'; };
+    rec.onerror=()=>{ setLive(false); recLabel.textContent='沒聽到，再點一下試試'; };
+    rec.onend=()=>{
+      setLive(false);
+      const t=finalText.trim();
+      if(!t){ recLabel.textContent='沒聽到，再點一下試試'; return; }
+      const r=parse(t);
+      if(r.amount!=null){ commitDirect(r); }
+      else{ // 沒聽到金額 → 開手動確認卡讓你補
+        rawEl.value=t; rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px';
+        manualBox.open=true; doParse(); recLabel.textContent='沒聽到金額，幫你開啟確認';
+      }
+    };
+    rec.start(); setLive(true);
+  }catch(e){ setLive(false); manualBox.open=true; rawEl.focus(); }
 }
-micBtn.addEventListener('click',()=>{ if(listening){ rec&&rec.stop(); } else startRec(); });
+recBtn.addEventListener('click',()=>{ if(listening){ try{rec.stop()}catch(e){} } else startRec(); });
+
+/* 直接記帳（語音解析成功時，不用按確認；附「撤銷」） */
+function commitDirect(r){
+  const id='e'+Date.now()+Math.floor(Math.random()*1e4);
+  entries.unshift({id, ts:Date.now(), amount:r.amount, category:r.cat,
+    note:(r.note||catById(r.cat).name), raw:r.raw});
+  save(entries); render();
+  recLabel.textContent='已記！點麥克風記下一筆';
+  toast('已記　'+(r.note||catById(r.cat).name)+'　'+fmt(r.amount), id);
+}
 
 /* ============ 解析 → 確認卡 ============ */
 let pending=null;
@@ -409,7 +439,17 @@ document.querySelectorAll('.tab').forEach(t=>{
   };
 });
 
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1600); }
+function toast(msg, undoId){
+  const t=document.getElementById('toast'); t.innerHTML='';
+  t.appendChild(document.createTextNode(msg));
+  if(undoId){
+    const u=document.createElement('span'); u.className='undo'; u.textContent='撤銷';
+    u.onclick=()=>{ del(undoId); t.classList.remove('show','act'); recLabel.textContent='已撤銷'; };
+    t.appendChild(u); t.classList.add('act');
+  } else t.classList.remove('act');
+  t.classList.add('show'); clearTimeout(t._h);
+  t._h=setTimeout(()=>t.classList.remove('show','act'), undoId?4000:1600);
+}
 
 /* 自動長高的輸入框 */
 rawEl.addEventListener('input',()=>{ rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px'; });
@@ -422,9 +462,13 @@ render();
     const p=new URLSearchParams(location.search);
     const said=p.get('say')||p.get('t')||p.get('text');
     if(said && said.trim()){
-      rawEl.value=said.trim();
-      rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px';
-      doParse();
+      const r=parse(said.trim());
+      if(r.amount!=null){ commitDirect(r); }
+      else{
+        rawEl.value=said.trim();
+        rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px';
+        manualBox.open=true; doParse();
+      }
       // 清掉網址參數，避免重整時重複帶入
       history.replaceState(null,'',location.pathname);
     }
