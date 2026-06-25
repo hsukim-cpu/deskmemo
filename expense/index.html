@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>唸記帳</title>
+<meta name="theme-color" content="#0f1115">
+<!-- iPhone：加到主畫面後像 App 一樣全螢幕 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="唸記帳">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root{
+    --bg:#0f1115; --card:#1b1e26; --card2:#232732; --line:#2c3140;
+    --txt:#f2f4f8; --sub:#9aa3b2; --accent:#4cd6a0; --accent2:#36b083;
+    --danger:#ff6b6b; --gold:#ffd166;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt); overflow-x:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Helvetica Neue",sans-serif;}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 92px) env(safe-area-inset-left);}
+  .wrap{max-width:560px; margin:0 auto; padding:16px;}
+  header{display:flex; align-items:baseline; justify-content:space-between; padding:10px 4px 4px;}
+  header h1{font-size:20px; margin:0; letter-spacing:1px;}
+  header .ver{font-size:11px; color:var(--sub);}
+
+  .summary{display:flex; gap:10px; margin:12px 0;}
+  .sumbox{flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px;}
+  .sumbox .k{font-size:12px; color:var(--sub);}
+  .sumbox .v{font-size:22px; font-weight:700; margin-top:4px;}
+  .sumbox .v small{font-size:13px; color:var(--sub); font-weight:400;}
+
+  .mic-card{background:var(--card); border:1px solid var(--line); border-radius:20px; padding:16px; margin:8px 0 14px;}
+  .mic-row{display:flex; gap:10px; align-items:stretch;}
+  #raw{flex:1 1 0; min-width:0; width:100%; background:var(--card2); color:var(--txt); border:1px solid var(--line);
+    border-radius:14px; padding:14px; font-size:17px; resize:none; min-height:54px; line-height:1.4; font-family:inherit;}
+  #raw::placeholder{color:#6b7280;}
+  .micbtn{width:58px; border:none; border-radius:14px; background:linear-gradient(160deg,var(--accent),var(--accent2));
+    color:#06281d; font-size:26px; display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+  .micbtn:active{transform:scale(.95);}
+  .micbtn.live{background:linear-gradient(160deg,#ff8a8a,#ff5b5b); color:#3a0d0d; animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.5)} 50%{box-shadow:0 0 0 10px rgba(255,107,107,0)}}
+  .hint{font-size:12px; color:var(--sub); margin-top:10px; line-height:1.5;}
+  .addbtn{width:100%; margin-top:12px; border:none; border-radius:14px; padding:14px;
+    background:var(--accent); color:#06281d; font-size:17px; font-weight:700;}
+  .addbtn:active{opacity:.85;}
+
+  /* 解析後的確認卡 */
+  .review{background:var(--card2); border:1px solid var(--accent); border-radius:16px; padding:14px; margin-top:12px; display:none;}
+  .review.show{display:block;}
+  .review .lbl{font-size:12px; color:var(--sub); margin:8px 0 6px;}
+  .amtrow{display:flex; align-items:center; gap:6px;}
+  .amtrow span{font-size:24px; color:var(--sub);}
+  #amt{flex:1; background:var(--card); border:1px solid var(--line); color:var(--txt);
+    border-radius:12px; padding:12px; font-size:24px; font-weight:700;}
+  #note{width:100%; background:var(--card); border:1px solid var(--line); color:var(--txt);
+    border-radius:12px; padding:12px; font-size:16px;}
+  #edate{background:var(--card); border:1px solid var(--line); color:var(--txt); border-radius:12px; padding:10px; font-size:15px;}
+  .cats{display:flex; flex-wrap:wrap; gap:8px;}
+  .cat{padding:8px 12px; border-radius:999px; background:var(--card); border:1px solid var(--line);
+    color:var(--sub); font-size:14px;}
+  .cat.sel{background:var(--accent); color:#06281d; border-color:var(--accent); font-weight:600;}
+  .review .acts{display:flex; gap:10px; margin-top:14px;}
+  .review .acts button{flex:1; border:none; border-radius:12px; padding:13px; font-size:16px; font-weight:600;}
+  .btn-ok{background:var(--accent); color:#06281d;}
+  .btn-cancel{background:var(--card); color:var(--sub); border:1px solid var(--line)!important;}
+
+  /* 清單 */
+  .tabs{display:flex; gap:8px; margin:18px 4px 8px;}
+  .tab{font-size:14px; color:var(--sub); padding:6px 12px; border-radius:999px; border:1px solid var(--line);}
+  .tab.sel{color:var(--txt); border-color:var(--accent); background:rgba(76,214,160,.12);}
+  .daygroup{margin-top:14px;}
+  .dayhead{display:flex; justify-content:space-between; font-size:13px; color:var(--sub); padding:0 4px 6px;}
+  .item{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:12px 14px; margin-bottom:8px;}
+  .item .ico{width:38px; height:38px; border-radius:11px; background:var(--card2); display:flex;
+    align-items:center; justify-content:center; font-size:20px; flex:0 0 auto;}
+  .item .mid{flex:1; min-width:0;}
+  .item .nm{font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .item .ct{font-size:12px; color:var(--sub); margin-top:2px;}
+  .item .amt{font-size:17px; font-weight:700;}
+  .item .del{color:var(--sub); font-size:20px; padding:4px 6px;}
+  .empty{text-align:center; color:var(--sub); padding:40px 0; font-size:14px; line-height:1.7;}
+
+  /* 月分類統計 */
+  .statrow{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .statrow .ico{width:30px; text-align:center; font-size:18px;}
+  .statrow .bar{flex:1; height:10px; background:var(--card2); border-radius:6px; overflow:hidden;}
+  .statrow .bar i{display:block; height:100%; background:var(--accent);}
+  .statrow .nm{font-size:14px; width:64px;}
+  .statrow .vv{font-size:14px; color:var(--sub); width:90px; text-align:right;}
+
+  .toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%);
+    background:#000; color:#fff; padding:10px 18px; border-radius:999px; font-size:14px; opacity:0;
+    transition:opacity .2s; pointer-events:none; z-index:50;}
+  .toast.show{opacity:.92;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎙️ 唸記帳</h1>
+    <span class="ver">說一句就記一筆</span>
+  </header>
+
+  <div class="summary">
+    <div class="sumbox"><div class="k">今天</div><div class="v" id="sumToday">$0</div></div>
+    <div class="sumbox"><div class="k" id="monLabel">本月</div><div class="v" id="sumMonth">$0</div></div>
+  </div>
+
+  <div class="mic-card">
+    <div class="mic-row">
+      <textarea id="raw" rows="1" placeholder="點麥克風或鍵盤上的 🎤 直接講，例如：「午餐排骨飯 120」"></textarea>
+      <button class="micbtn" id="micBtn" title="語音">🎤</button>
+    </div>
+    <button class="addbtn" id="parseBtn">記一筆</button>
+    <div class="hint" id="hint">
+      💡 在 iPhone 上：點上面輸入框，再點鍵盤左下角的 <b>🎤</b> 講話最準。<br>
+      講法隨意：<b>「咖啡 65」</b>、<b>「捷運二十」</b>、<b>「買衣服花了三百五」</b>都行。
+    </div>
+
+    <!-- 解析確認卡 -->
+    <div class="review" id="review">
+      <div class="lbl">金額</div>
+      <div class="amtrow"><span>$</span><input id="amt" type="number" inputmode="decimal" step="1"></div>
+      <div class="lbl">分類</div>
+      <div class="cats" id="cats"></div>
+      <div class="lbl">項目</div>
+      <input id="note" type="text" placeholder="（選填）">
+      <div class="lbl">日期</div>
+      <input id="edate" type="date">
+      <div class="acts">
+        <button class="btn-cancel" id="cancelBtn">取消</button>
+        <button class="btn-ok" id="confirmBtn">✓ 加入</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab sel" data-tab="list">明細</div>
+    <div class="tab" data-tab="stat">本月分類</div>
+  </div>
+
+  <div id="viewList"></div>
+  <div id="viewStat" style="display:none"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 資料層 ============ */
+const KEY='saymoney.entries.v1';
+function load(){ try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]} }
+function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+let entries = load();
+
+/* ============ 分類設定 ============ */
+const CATS = [
+  {id:'food',  name:'餐飲', icon:'🍱', kw:['早餐','午餐','晚餐','宵夜','飲料','咖啡','奶茶','手搖','飯','麵','便當','餐','吃','喝','茶','麥當勞','星巴克','火鍋','燒烤','零食','點心','小吃','水果','超商','便利商店','7-11','全家','拉麵','壽司','披薩','蛋糕','早午餐']},
+  {id:'trans', name:'交通', icon:'🚌', kw:['捷運','公車','計程車','小黃','高鐵','火車','加油','油錢','停車','機票','車票','uber','ubike','youbike','客運','悠遊卡','過路費','停車費','汽油']},
+  {id:'shop',  name:'購物', icon:'🛍️', kw:['買','衣服','鞋','褲','超市','全聯','大潤發','家樂福','momo','蝦皮','網購','日用品','文具','化妝品','保養品','包包','飾品','3c','耳機','充電']},
+  {id:'fun',   name:'娛樂', icon:'🎮', kw:['電影','遊戲','唱歌','ktv','旅遊','門票','演唱會','訂閱','netflix','spotify','youtube','展覽','按摩','spa','酒','夜店']},
+  {id:'home',  name:'居家', icon:'🏠', kw:['房租','租金','水費','電費','瓦斯','網路','電話費','手機費','家具','家電','清潔','衛生紙','管理費']},
+  {id:'health',name:'醫療', icon:'💊', kw:['看病','醫院','藥','診所','健保','掛號','牙醫','眼鏡','隱形眼鏡','保健','維他命','看醫生']},
+  {id:'other', name:'其他', icon:'📦', kw:[]},
+];
+const catById = id => CATS.find(c=>c.id===id) || CATS[CATS.length-1];
+
+/* ============ 中文數字 → 阿拉伯數字 ============ */
+const CN_DIGIT={'零':0,'〇':0,'一':1,'二':2,'兩':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'壹':1,'貳':2,'參':3,'肆':4,'伍':5,'陸':6,'柒':7,'捌':8,'玖':9};
+const CN_UNIT={'十':10,'拾':10,'百':100,'佰':100,'千':1000,'仟':1000,'萬':10000,'万':10000,'億':100000000};
+function cnToNum(s){
+  if(!s) return null;
+  let total=0, section=0, num=0, seen=false, lastUnit=0, zeroSinceUnit=false;
+  for(const ch of s){
+    if(ch in CN_DIGIT){ num=CN_DIGIT[ch]; seen=true; if(num===0) zeroSinceUnit=true; }
+    else if(ch in CN_UNIT){
+      const u=CN_UNIT[ch];
+      if(u>=10000){ section=(section+(num||0))*u; total+=section; section=0; }
+      else { if(num===0) num=1; section += num*u; }
+      lastUnit=u; num=0; seen=true; zeroSinceUnit=false;
+    } else return null; // 含非數字字元，放棄
+  }
+  if(!seen) return null;
+  // 台語口語尾數簡說：三百五=350、兩千三=2300、一萬二=12000（結尾是裸數字、中間沒講「零」、且已有單位）
+  if(num>0 && lastUnit>=10 && !zeroSinceUnit) num *= lastUnit/10;
+  return total+section+num;
+}
+
+/* ============ 解析一句話 ============ */
+function parse(text){
+  const raw=(text||'').trim();
+  let amount=null, amtMatch=null;
+  // 1) 阿拉伯數字（可帶千分位/小數），優先靠近「元/塊/$」的
+  const numRe=/(?:\$|＄)?\s*([0-9０-９][0-9０-９,，]*(?:[.．][0-9０-９]+)?)\s*(元|塊|塊錢|圓|円|kw|k)?/g;
+  let m, best=null;
+  while((m=numRe.exec(raw))){
+    const numStr=m[1].replace(/[，,]/g,'').replace(/[０-９]/g,d=>'0123456789'['０１２３４５６７８９'.indexOf(d)]).replace(/[．]/g,'.');
+    let val=parseFloat(numStr);
+    if(m[2]==='k'||m[2]==='kw') val*=1000;
+    if(isNaN(val)) continue;
+    const hasCur=!!m[2] || raw[m.index]==='$' || raw[m.index]==='＄';
+    if(!best || (hasCur && !best.cur)) best={val, cur:hasCur, idx:m.index, len:m[0].length, str:m[0]};
+  }
+  if(best){ amount=best.val; amtMatch=best.str; }
+  // 2) 中文數字（找「...元/塊」或一串中文數字）
+  if(amount===null){
+    const cnRe=/([零〇一二兩两三四五六七八九十百千萬万億壹貳參肆伍陸柒捌玖拾佰仟]+)\s*(元|塊|塊錢|圓)?/g;
+    while((m=cnRe.exec(raw))){
+      const v=cnToNum(m[1]);
+      if(v!==null && v>0){ amount=v; amtMatch=m[0]; break; }
+    }
+  }
+  // 分類
+  const low=raw.toLowerCase();
+  let cat='other';
+  outer: for(const c of CATS){
+    for(const k of c.kw){ if(low.includes(k.toLowerCase())){ cat=c.id; break outer; } }
+  }
+  // 項目：把金額字串與貨幣/動詞雜字去掉
+  let note=raw;
+  if(amtMatch) note=note.replace(amtMatch,' ');
+  note=note.replace(/[0-9０-９.．,，]+/g,' ')
+           .replace(/(元|塊錢|塊|圓|円|\$|＄|花了|花|付了|付|共|總共|大概|差不多|塊錢)/g,' ')
+           .replace(/[零〇一二兩两三四五六七八九十百千萬万億壹貳參肆伍陸柒捌玖拾佰仟]+/g,' ')
+           .replace(/\s+/g,' ').trim();
+  if(!note) note = catById(cat).name;
+  return {amount, cat, note, raw};
+}
+
+/* ============ 語音（Web Speech，支援的瀏覽器才用） ============ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, listening=false;
+const micBtn=document.getElementById('micBtn');
+const rawEl=document.getElementById('raw');
+function startRec(){
+  if(!SR){ rawEl.focus(); toast('此瀏覽器用鍵盤的 🎤 聽寫'); return; }
+  try{
+    rec=new SR(); rec.lang='zh-TW'; rec.interimResults=true; rec.continuous=false;
+    let finalText='';
+    rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; rawEl.value=t; finalText=t; };
+    rec.onend=()=>{ listening=false; micBtn.classList.remove('live'); if(finalText.trim()) doParse(); };
+    rec.onerror=()=>{ listening=false; micBtn.classList.remove('live'); rawEl.focus(); };
+    rec.start(); listening=true; micBtn.classList.add('live');
+  }catch(e){ rawEl.focus(); }
+}
+micBtn.addEventListener('click',()=>{ if(listening){ rec&&rec.stop(); } else startRec(); });
+
+/* ============ 解析 → 確認卡 ============ */
+let pending=null;
+const review=document.getElementById('review');
+const amtEl=document.getElementById('amt');
+const noteEl=document.getElementById('note');
+const edateEl=document.getElementById('edate');
+const catsEl=document.getElementById('cats');
+
+function renderCatChips(sel){
+  catsEl.innerHTML='';
+  CATS.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cat'+(c.id===sel?' sel':''); b.textContent=c.icon+' '+c.name;
+    b.onclick=()=>{ pending.cat=c.id; [...catsEl.children].forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); };
+    catsEl.appendChild(b);
+  });
+}
+function todayStr(d){ d=d||new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+
+function doParse(){
+  const r=parse(rawEl.value);
+  if(r.amount===null){ toast('沒聽到金額，補一下數字'); amtEl.value=''; }
+  pending={cat:r.cat, note:r.note, raw:r.raw};
+  amtEl.value = r.amount!==null ? r.amount : '';
+  noteEl.value = r.note;
+  edateEl.value = todayStr();
+  renderCatChips(r.cat);
+  review.classList.add('show');
+  if(r.amount===null) amtEl.focus();
+}
+document.getElementById('parseBtn').addEventListener('click',()=>{
+  if(!rawEl.value.trim()){ rawEl.focus(); return; } doParse();
+});
+document.getElementById('cancelBtn').addEventListener('click',()=>{ review.classList.remove('show'); });
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+  const amount=parseFloat(amtEl.value);
+  if(isNaN(amount)||amount<=0){ amtEl.focus(); toast('金額要填數字'); return; }
+  const d=edateEl.value? new Date(edateEl.value+'T12:00:00') : new Date();
+  entries.unshift({id:'e'+Date.now()+Math.floor(Math.random()*1e4), ts:d.getTime(),
+    amount, category:pending.cat, note:(noteEl.value.trim()||catById(pending.cat).name), raw:pending.raw});
+  save(entries);
+  review.classList.remove('show'); rawEl.value=''; pending=null;
+  render(); toast('已記一筆 '+catById(catByLast()).icon);
+});
+let _lastCat='other'; function catByLast(){return _lastCat;}
+
+/* ============ 刪除 ============ */
+function del(id){
+  entries=entries.filter(e=>e.id!==id); save(entries); render();
+}
+
+/* ============ 顯示 ============ */
+function fmt(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+function sameMonth(ts,now){ const d=new Date(ts); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); }
+function sameDay(ts,now){ const d=new Date(ts); return todayStr(d)===todayStr(now); }
+
+function render(){
+  const now=new Date();
+  let today=0, month=0;
+  entries.forEach(e=>{ if(sameDay(e.ts,now)) today+=e.amount; if(sameMonth(e.ts,now)) month+=e.amount; });
+  document.getElementById('sumToday').innerHTML=fmt(today);
+  document.getElementById('sumMonth').innerHTML=fmt(month);
+  document.getElementById('monLabel').textContent=(now.getMonth()+1)+'月';
+
+  // 明細
+  const vl=document.getElementById('viewList'); vl.innerHTML='';
+  if(!entries.length){
+    vl.innerHTML='<div class="empty">還沒有任何紀錄 🌱<br>點上面的麥克風，講出你的第一筆花費吧</div>';
+  }else{
+    const byDay={};
+    entries.forEach(e=>{ const k=todayStr(new Date(e.ts)); (byDay[k]=byDay[k]||[]).push(e); });
+    Object.keys(byDay).sort().reverse().forEach(day=>{
+      const list=byDay[day]; const sum=list.reduce((a,e)=>a+e.amount,0);
+      const g=document.createElement('div'); g.className='daygroup';
+      const lbl = day===todayStr(now)?'今天 · '+day : day;
+      g.innerHTML='<div class="dayhead"><span>'+lbl+'</span><span>'+fmt(sum)+'</span></div>';
+      list.forEach(e=>{
+        const c=catById(e.category);
+        const it=document.createElement('div'); it.className='item';
+        it.innerHTML='<div class="ico">'+c.icon+'</div><div class="mid"><div class="nm"></div>'+
+          '<div class="ct">'+c.name+'</div></div><div class="amt">'+fmt(e.amount)+'</div>'+
+          '<div class="del">✕</div>';
+        it.querySelector('.nm').textContent=e.note;
+        it.querySelector('.del').onclick=()=>{ if(confirm('刪除「'+e.note+' '+fmt(e.amount)+'」？')) del(e.id); };
+        g.appendChild(it);
+      });
+      vl.appendChild(g);
+    });
+  }
+
+  // 月分類統計
+  const vs=document.getElementById('viewStat'); vs.innerHTML='';
+  const tot={}; let mtotal=0;
+  entries.forEach(e=>{ if(sameMonth(e.ts,now)){ tot[e.category]=(tot[e.category]||0)+e.amount; mtotal+=e.amount; } });
+  if(!mtotal){ vs.innerHTML='<div class="empty">本月還沒有紀錄</div>'; }
+  else{
+    const max=Math.max(...Object.values(tot));
+    CATS.forEach(c=>{
+      const v=tot[c.id]; if(!v) return;
+      const row=document.createElement('div'); row.className='statrow';
+      row.innerHTML='<div class="ico">'+c.icon+'</div><div class="nm">'+c.name+'</div>'+
+        '<div class="bar"><i style="width:'+(v/max*100)+'%"></i></div>'+
+        '<div class="vv">'+fmt(v)+' · '+Math.round(v/mtotal*100)+'%</div>';
+      vs.appendChild(row);
+    });
+  }
+}
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('sel')); t.classList.add('sel');
+    const isList=t.dataset.tab==='list';
+    document.getElementById('viewList').style.display=isList?'':'none';
+    document.getElementById('viewStat').style.display=isList?'none':'';
+  };
+});
+
+/* 確認時記住分類 icon 用 */
+document.getElementById('confirmBtn').addEventListener('click',()=>{ _lastCat=pending?pending.cat:_lastCat; },true);
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1600); }
+
+/* 自動長高的輸入框 */
+rawEl.addEventListener('input',()=>{ rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px'; });
+
+render();
+
+/* Service Worker：離線可用 */
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
