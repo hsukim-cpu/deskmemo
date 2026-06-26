@@ -1,5 +1,5 @@
 // 唸記帳 service worker — network-first，確保永遠拿到最新版（離線時才用快取）
-const CACHE = 'saymoney-v7';
+const CACHE = 'saymoney-v8';
 const ASSETS = [
   './',
   './index.html',

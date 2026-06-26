@@ -127,6 +127,40 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
   .toast.act{pointer-events:auto;}
   .toast .undo{margin-left:16px; color:#e7b07e; font-weight:600;}
+
+  /* 本月可點：加箭頭提示 */
+  .sumbox.month{position:relative; cursor:pointer;}
+  .sumbox.month:active{background:var(--soft);}
+  .mvchev{position:absolute; top:14px; right:12px; color:var(--faint); display:flex;}
+  .mvchev .i{width:18px; height:18px;}
+
+  /* 月曆畫面 */
+  .monthview{position:fixed; inset:0; z-index:60; background:var(--paper); display:none;
+    flex-direction:column; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+  .monthview.show{display:flex; animation:fade .2s ease;}
+  .mv-top{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 6px;}
+  .mv-top .back{display:flex; align-items:center; gap:4px; color:var(--accent); font-size:15px; letter-spacing:1px;}
+  .mv-top .back .i{width:20px; height:20px;}
+  .mv-nav{display:flex; align-items:center; justify-content:center; gap:22px; padding:6px 18px 0;}
+  .mv-nav button{border:none; background:none; color:var(--sub); display:flex; padding:6px;}
+  .mv-nav button .i{width:22px; height:22px;}
+  .mv-nav .mv-title{font-size:18px; font-weight:600; letter-spacing:1px; min-width:120px; text-align:center; color:var(--txt);}
+  .mv-total{text-align:center; color:var(--sub); font-size:13px; letter-spacing:1px; margin:6px 0 14px; font-variant-numeric:tabular-nums;}
+  .cal{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:0 14px;}
+  .cal .wd{text-align:center; font-size:11px; color:var(--faint); padding:2px 0 6px;}
+  .cal .cell{aspect-ratio:1/1; border-radius:11px; background:var(--card); border:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 2px; overflow:hidden;}
+  .cal .cell.empty{background:none; border:none;}
+  .cal .cell .d{font-size:12px; color:var(--sub);}
+  .cal .cell .a{font-size:9.5px; color:var(--accent); margin-top:auto; font-variant-numeric:tabular-nums; line-height:1.2; text-align:center;}
+  .cal .cell.has{background:var(--tint); border-color:transparent;}
+  .cal .cell.today{border-color:var(--accent);}
+  .cal .cell.today .d{color:var(--accent); font-weight:700;}
+  .cal .cell.sel{outline:2px solid var(--ink); outline-offset:-1px;}
+  .mv-day{flex:1; overflow-y:auto; padding:16px 18px 24px;}
+  .mv-day .dh{font-size:13px; color:var(--sub); letter-spacing:1px; margin-bottom:10px; display:flex; justify-content:space-between;}
+  .mv-day .dh b{color:var(--txt); font-variant-numeric:tabular-nums;}
+  .mv-empty{text-align:center; color:var(--faint); font-size:13px; padding:24px 0;}
 </style>
 </head>
 <body>
@@ -141,7 +175,7 @@
 
   <div class="summary">
     <div class="sumbox"><div class="k">今天</div><div class="v" id="sumToday">$0</div></div>
-    <div class="sumbox month"><div class="k" id="monLabel">本月</div><div class="v" id="sumMonth">$0</div></div>
+    <div class="sumbox month" id="monthBox"><div class="k" id="monLabel">本月</div><div class="v" id="sumMonth">$0</div><span class="mvchev"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
   </div>
 
   <div class="mic-card">
@@ -180,6 +214,22 @@
 
   <div id="viewList"></div>
   <div id="viewStat" style="display:none"></div>
+</div>
+
+<!-- 月曆畫面 -->
+<div class="monthview" id="monthView">
+  <div class="mv-top">
+    <button class="back" id="mvBack"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>返回</button>
+    <span></span>
+  </div>
+  <div class="mv-nav">
+    <button id="mvPrev" aria-label="上個月"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="mv-title" id="mvTitle">2026年6月</div>
+    <button id="mvNext" aria-label="下個月"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="mv-total" id="mvTotal">本月合計 $0</div>
+  <div class="cal" id="cal"></div>
+  <div class="mv-day" id="mvDay"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -456,6 +506,72 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.getElementById('viewStat').style.display=isList?'none':'';
   };
 });
+
+/* ============ 月曆畫面（點「本月」打開、可前後切月） ============ */
+const monthView=document.getElementById('monthView');
+const calEl=document.getElementById('cal');
+const mvTitle=document.getElementById('mvTitle');
+const mvTotal=document.getElementById('mvTotal');
+const mvDay=document.getElementById('mvDay');
+let mvYear, mvMonth, mvSel=null;
+
+function openMonth(){
+  const now=new Date();
+  mvYear=now.getFullYear(); mvMonth=now.getMonth(); mvSel=todayStr(now);
+  monthView.classList.add('show'); renderMonth();
+}
+function closeMonth(){ monthView.classList.remove('show'); }
+function shiftMonth(d){
+  mvMonth+=d;
+  if(mvMonth<0){ mvMonth=11; mvYear--; }
+  if(mvMonth>11){ mvMonth=0; mvYear++; }
+  mvSel=null; renderMonth();
+}
+function renderMonth(){
+  const p=n=>String(n).padStart(2,'0');
+  mvTitle.textContent=mvYear+'年'+(mvMonth+1)+'月';
+  const dayTot={}; let mTot=0;
+  entries.forEach(e=>{ const d=new Date(e.ts);
+    if(d.getFullYear()===mvYear && d.getMonth()===mvMonth){ const k=todayStr(d); dayTot[k]=(dayTot[k]||0)+e.amount; mTot+=e.amount; } });
+  mvTotal.textContent='本月合計 '+fmt(mTot);
+  const first=new Date(mvYear,mvMonth,1).getDay();
+  const days=new Date(mvYear,mvMonth+1,0).getDate();
+  const todayK=todayStr(new Date());
+  let html='';
+  ['日','一','二','三','四','五','六'].forEach(w=>html+='<div class="wd">'+w+'</div>');
+  for(let i=0;i<first;i++) html+='<div class="cell empty"></div>';
+  for(let dn=1;dn<=days;dn++){
+    const k=mvYear+'-'+p(mvMonth+1)+'-'+p(dn);
+    const amt=dayTot[k];
+    let cls='cell'; if(amt) cls+=' has'; if(k===todayK) cls+=' today'; if(k===mvSel) cls+=' sel';
+    html+='<div class="'+cls+'" data-k="'+k+'"><div class="d">'+dn+'</div>'+(amt?'<div class="a">'+fmt(amt)+'</div>':'')+'</div>';
+  }
+  calEl.innerHTML=html;
+  calEl.querySelectorAll('.cell[data-k]').forEach(c=>{ c.onclick=()=>{ mvSel=c.dataset.k; renderMonth(); }; });
+  renderMonthDay();
+}
+function renderMonthDay(){
+  if(!mvSel){ mvDay.innerHTML=''; return; }
+  const list=entries.filter(e=>todayStr(new Date(e.ts))===mvSel);
+  const sum=list.reduce((a,e)=>a+e.amount,0);
+  const parts=mvSel.split('-');
+  let html='<div class="dh"><span>'+Number(parts[1])+'月'+Number(parts[2])+'日</span><b>'+fmt(sum)+'</b></div>';
+  if(!list.length){ mvDay.innerHTML=html+'<div class="mv-empty">這天沒有紀錄</div>'; return; }
+  mvDay.innerHTML=html;
+  list.forEach(e=>{
+    const c=catById(e.category);
+    const it=document.createElement('div'); it.className='item';
+    it.innerHTML='<div class="ico">'+c.icon+'</div><div class="mid"><div class="nm"></div><div class="ct">'+c.name+
+      '</div></div><div class="amt">'+fmt(e.amount)+'</div><div class="del">'+SVG.x+'</div>';
+    it.querySelector('.nm').textContent=e.note;
+    it.querySelector('.del').onclick=()=>{ if(confirm('刪除「'+e.note+' '+fmt(e.amount)+'」？')){ del(e.id); renderMonth(); } };
+    mvDay.appendChild(it);
+  });
+}
+document.getElementById('monthBox').addEventListener('click', openMonth);
+document.getElementById('mvBack').addEventListener('click', closeMonth);
+document.getElementById('mvPrev').addEventListener('click',()=>shiftMonth(-1));
+document.getElementById('mvNext').addEventListener('click',()=>shiftMonth(1));
 
 function toast(msg, undoId){
   const t=document.getElementById('toast'); t.innerHTML='';
