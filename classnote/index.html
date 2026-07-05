@@ -232,6 +232,7 @@
     <button class="tbtn" id="copyBtn"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>複製筆記</button>
     <button class="tbtn ai" id="aiBtn"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>AI 整理筆記</button>
     <button class="tbtn" id="aiKeyBtn"><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12L20 3M16 7l2 2M13 10l2 2"/></svg>AI 設定</button>
+    <button class="tbtn" id="audioDlBtn"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>下載錄音</button>
     <button class="tbtn" id="clearBtn"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>清除本場</button>
   </div>
 
@@ -1204,7 +1205,7 @@ $('manualAdd').onclick = () => {
 $('sessTitle').oninput = () => { if (cur){ cur.title = $('sessTitle').value.trim() || defaultTitle(); saveCurrent(); } };
 
 $('saveBtn').onclick = () => {
-  if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
+  if (!cur || (!cur.entries.length && !(cur.audio || []).length)){ toast('這場還沒有內容'); return; }
   stopRec();
   const list = loadSessions();
   const i = list.findIndex(s => s.id === cur.id);
@@ -1228,13 +1229,39 @@ $('copyBtn').onclick = async () => {
   catch(e){ toast('複製失敗，請改用匯出'); }
 };
 
+// 下載某場次的所有錄音段（webm，每段以起始時間命名，一段約10分鐘、2–3MB，
+// 剛好在 ChatGPT/Whisper 的單檔上限內，可以直接丟去請它產完整逐字稿）
+async function downloadAudio(sess){
+  const segs = (sess.audio || []).filter(Boolean);
+  if (!segs.length){ toast('這場沒有錄音'); return; }
+  if (recording){ toast('先按停收音，最後一段錄音才會存檔'); return; }
+  const safe = sess.title.replace(/[\\/:*?"<>|]/g, '_');
+  let got = 0;
+  for (let i = 0; i < segs.length; i++){
+    const blob = await audGet(segs[i].id);
+    if (!blob) continue;
+    got++;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safe}-錄音${String(i+1).padStart(2,'0')}-${fmtClock(new Date(segs[i].start)).replace(':','')}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout((u => () => URL.revokeObjectURL(u))(a.href), 8000);
+    await new Promise(r => setTimeout(r, 400));  // 連續下載間隔，避免瀏覽器擋
+  }
+  toast(got ? `已下載 ${got} 段錄音（瀏覽器若詢問「允許下載多個檔案」請按允許）` : '錄音還在寫入，稍等再試');
+}
+
+$('audioDlBtn').onclick = () => { if (cur) downloadAudio(cur); else toast('這場還沒有內容'); };
+
 const deleteSessionImages = (sess) => {
   (sess.entries || []).forEach(e => { if (e.imgId) imgDel(e.imgId); });
   (sess.audio || []).forEach(a => audDel(a.id));
 };
 
 $('clearBtn').onclick = () => {
-  if (!cur || !cur.entries.length){ toast('本來就是空的'); return; }
+  if (!cur || (!cur.entries.length && !(cur.audio || []).length)){ toast('本來就是空的'); return; }
   if (!confirm('清除這場的逐字稿與筆記？（已儲存的歷史場次不受影響）')) return;
   stopRec();
   deleteSessionImages(cur);
@@ -1272,9 +1299,12 @@ function renderSessions(){
       <span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
       <span class="mid"><span class="nm">${esc(s.title)}</span>
         <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length - photos} 句 · ${n} 條筆記${photos ? ` · ${photos} 張照片` : ''}${(s.audio||[]).length ? ' · 含錄音' : ''}${s.aiMd ? ' · 含AI整理' : ''}</span></span>
+      ${(s.audio||[]).length ? '<button class="adl" title="下載錄音"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>' : ''}
       <button class="dl" title="下載 Markdown"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
       <button class="open" title="開啟繼續記"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button class="del" title="刪除"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`;
+    const adl = div.querySelector('.adl');
+    if (adl) adl.onclick = () => downloadAudio(s);
     div.querySelector('.dl').onclick = async () => download(`${s.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, await buildMarkdown(s));
     div.querySelector('.open').onclick = () => { openSession(s); };
     div.querySelector('.del').onclick = () => {
