@@ -1,7 +1,8 @@
 name: Deploy GitHub Pages
 
-# 把整個 repo 發佈到 GitHub Pages，讓「唸記帳」PWA 可在 iPhone 上開啟。
+# 把整個 repo 發佈到 GitHub Pages，讓「唸記帳」「課堂筆記」PWA 可在手機/瀏覽器開啟。
 # 網址：https://hsukim-cpu.github.io/deskmemo/expense/
+#      https://hsukim-cpu.github.io/deskmemo/classnote/
 
 on:
   workflow_dispatch:
@@ -9,6 +10,7 @@ on:
     branches:
       - main
       - claude/iphone-voice-expense-tracker-3jisg6
+      - claude/classroom-note-generator-spjw95
 
 permissions:
   contents: read
