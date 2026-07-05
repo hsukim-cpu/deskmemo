@@ -966,7 +966,18 @@ async function buildMarkdown(sess, withImages = true){
   if (sess.aiMd){
     lines.push('## AI 整理筆記');
     lines.push('');
-    lines.push(sess.aiMd.trim());
+    let ai = sess.aiMd.trim();
+    // 【照片 HH:MM】記號換成內嵌照片
+    for (const tk of [...ai.matchAll(/【照片\s*(\d{1,2}:\d{2})】/g)]){
+      const e = findPhotoByClock(tk[1], sess);
+      if (e && withImages){
+        const data = await imgGet(e.imgId);
+        if (data) ai = ai.replace(tk[0], `![照片 ${tk[1]}](${data})`);
+      } else {
+        ai = ai.replace(tk[0], `（照片 ${tk[1]}）`);
+      }
+    }
+    lines.push(ai);
     lines.push('');
   }
   const tagged = sess.entries.filter(e => e.tag);
@@ -1029,19 +1040,34 @@ const AI_SYSTEM = `你是「AutoCAD AI輔助繪圖與3D列印建模班」的助�
 3. 老師強調的注意事項、常見錯誤、作業與考試相關內容，獨立整理成「⚠ 重點提醒」和「📝 作業/待辦」兩節（沒有就省略）。
 4. 有講到參數數值（層高、填充率、溫度、公差、半徑等）務必保留精確數字，整理成表格。
 5. 只根據逐字稿內容整理，不要腦補課堂沒講的內容；聽不清或矛盾的地方標「(?)」。
-6. 全部用臺灣慣用的繁體中文與術語，輸出 Markdown（不要用一級標題 #，從 ## 開始）。`;
+6. 全部用臺灣慣用的繁體中文與術語，輸出 Markdown（不要用一級標題 #，從 ## 開始）。
+7. 使用者可能附上課堂拍的投影幕/白板照片（每張前面標明拍攝時間）。請對照整合：
+   a. 照片上看得到的指令、參數、選單文字，以照片為準校正逐字稿聽錯的字。
+   b. 筆記中對應到某張照片的段落，在該段最後單獨一行寫「【照片 HH:MM】」（用那張照片標的時間），系統會自動把照片嵌進筆記。每張照片最多引用一次。
+   c. 照片上有、但老師沒口頭講到的重要資訊（參數表、快捷鍵、設定值），也整理進筆記。`;
 
 async function aiSummarize(){
   const key = localStorage.getItem(LS_KEY);
   if (!key){ openAiModal(); return; }
   if (!cur || !cur.entries.length){ toast('還沒有逐字稿可以整理'); return; }
-  const transcript = cur.entries.map(e => `[${fmtClock(new Date(e.ts))}] ${e.t}`).join('\n');
   const btn = $('aiBtn');
   btn.disabled = true;
   $('aiOut').classList.add('show');
   $('aiMd').textContent = '整理中…（依上課長度可能要一兩分鐘）';
   let md = '';
   try{
+    // 逐字稿（照片在時間軸上留標記）＋ 照片本體一起送給 AI 對照整合
+    const transcript = cur.entries.map(e => e.imgId
+      ? `[${fmtClock(new Date(e.ts))}]（此時拍了投影幕/白板照片，見附圖 ${fmtClock(new Date(e.ts))}）`
+      : `[${fmtClock(new Date(e.ts))}] ${e.t}`).join('\n');
+    const content = [{ type: 'text', text: `以下是今天課堂的逐字稿（含拍照時間標記）：\n\n${transcript}` }];
+    const photoEntries = cur.entries.filter(e => e.imgId).slice(0, 40);  // 上限 40 張，避免請求過大
+    for (const e of photoEntries){
+      const data = await imgGet(e.imgId);
+      if (!data) continue;
+      content.push({ type: 'text', text: `（下圖攝於 ${fmtClock(new Date(e.ts))}）` });
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: data.split(',')[1] } });
+    }
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -1056,7 +1082,7 @@ async function aiSummarize(){
         stream: true,
         thinking: { type: 'adaptive' },
         system: AI_SYSTEM,
-        messages: [{ role: 'user', content: `以下是今天課堂的逐字稿：\n\n${transcript}` }],
+        messages: [{ role: 'user', content }],
       }),
     });
     if (!res.ok){
@@ -1079,7 +1105,7 @@ async function aiSummarize(){
         let ev; try{ ev = JSON.parse(line.slice(6)); }catch(e){ continue; }
         if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta'){
           md += ev.delta.text;
-          $('aiMd').innerHTML = mdToHtml(md);
+          renderAiMd(md);
         }
       }
     }
@@ -1091,6 +1117,30 @@ async function aiSummarize(){
   }finally{
     btn.disabled = false;
   }
+}
+
+// AI 筆記裡的「【照片 HH:MM】」記號 → 找到那張照片（允許 ±5 分鐘誤差）
+function findPhotoByClock(hhmm, sess){
+  const entries = ((sess || cur) && (sess || cur).entries) || [];
+  const [h, m] = hhmm.split(':').map(Number);
+  let best = null, bestDiff = Infinity;
+  for (const e of entries){
+    if (!e.imgId) continue;
+    const d = new Date(e.ts);
+    const diff = Math.abs((d.getHours() * 60 + d.getMinutes()) - (h * 60 + m));
+    if (diff < bestDiff){ bestDiff = diff; best = e; }
+  }
+  return bestDiff <= 5 ? best : null;
+}
+
+// AI 筆記渲染：Markdown → HTML，照片記號換成真的照片
+function renderAiMd(md){
+  const html = mdToHtml(md).replace(/【照片\s*(\d{1,2}:\d{2})】/g, (m0, t) => {
+    const e = findPhotoByClock(t);
+    return e ? `<img class="snap" data-imgid="${e.imgId}" alt="照片 ${t}">` : m0;
+  });
+  $('aiMd').innerHTML = html;
+  hydrateImages($('aiMd'));
 }
 
 // 夠用就好的迷你 Markdown 轉 HTML（標題/清單/表格/粗體/程式碼/引言）
@@ -1247,7 +1297,7 @@ function openSession(s){
   renderNotes();
   renderTerms();
   updateCounts();
-  if (s.aiMd){ $('aiOut').classList.add('show'); $('aiMd').innerHTML = mdToHtml(s.aiMd); }
+  if (s.aiMd){ $('aiOut').classList.add('show'); renderAiMd(s.aiMd); }
   else { $('aiOut').classList.remove('show'); $('aiMd').innerHTML = ''; }
   updateTimer();
   if (!timerIv) timerIv = setInterval(updateTimer, 1000);
@@ -1278,7 +1328,7 @@ function toast(msg){
       renderNotes();
       renderTerms();
       updateCounts();
-      if (cur.aiMd){ $('aiOut').classList.add('show'); $('aiMd').innerHTML = mdToHtml(cur.aiMd); }
+      if (cur.aiMd){ $('aiOut').classList.add('show'); renderAiMd(cur.aiMd); }
       updateTimer();
       timerIv = setInterval(updateTimer, 1000);
       toast('已復原上次未儲存的場次');
