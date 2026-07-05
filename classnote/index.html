@@ -47,6 +47,10 @@
   .bigrec:active{transform:scale(.95);}
   .bigrec.live{background:var(--accent); animation:pulse 1.2s infinite;}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(74,125,116,.45)} 50%{box-shadow:0 0 0 14px rgba(74,125,116,0)}}
+  .camrec{display:flex; align-items:center; justify-content:center; width:54px; height:54px; flex:0 0 auto;
+    border:1px solid var(--line); border-radius:50%; background:var(--card); color:var(--txt); cursor:pointer; transition:all .12s;}
+  .camrec .i{width:24px; height:24px;}
+  .camrec:active{transform:scale(.94); background:var(--soft);}
   .rec-mid{flex:1; min-width:220px;}
   .rec-status{font-size:14px; color:var(--sub); letter-spacing:1px;}
   .rec-status b{color:var(--txt);}
@@ -82,6 +86,13 @@
   .tr-time{color:var(--faint); font-size:11.5px; font-variant-numeric:tabular-nums; flex:0 0 auto; padding-top:3px;}
   .tr-text b.term{color:var(--accent); font-weight:600;}
   .tr-empty{color:var(--faint); font-size:13.5px; text-align:center; padding:40px 10px; line-height:2;}
+  .snap{max-width:100%; max-height:220px; border-radius:10px; border:1px solid var(--line); cursor:zoom-in; display:block;}
+
+  /* 照片放大 */
+  .lightbox{position:fixed; inset:0; background:rgba(40,36,30,.88); display:none;
+    align-items:center; justify-content:center; z-index:100; padding:14px;}
+  .lightbox.show{display:flex;}
+  .lightbox img{max-width:96vw; max-height:92vh; border-radius:8px;}
 
   /* 筆記 */
   .nt-block{margin-bottom:16px;}
@@ -120,6 +131,9 @@
   .term-def.show{display:block;}
   .term-def b{color:var(--accent);}
   .term-def .cat{font-size:11px; color:var(--faint); letter-spacing:2px; margin-left:8px;}
+  .term-fig{margin-top:10px;}
+  .term-fig svg{display:block; max-width:340px; width:100%; height:auto; background:var(--card);
+    border:1px solid var(--line); border-radius:10px;}
 
   /* 手動輸入 */
   .manual{margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 15px;}
@@ -186,6 +200,10 @@
       <div class="rec-timer" id="recTimer">00:00:00</div>
       <div class="interim" id="interim"></div>
     </div>
+    <button class="camrec" id="camBtn" aria-label="拍照插入筆記" title="拍投影幕／白板，照片會插進筆記">
+      <svg class="i" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <input type="file" id="camFile" accept="image/*" capture="environment" hidden>
     <div class="rec-side">
       <input id="sessTitle" type="text" placeholder="場次名稱">
     </div>
@@ -270,6 +288,8 @@
     </div>
   </div>
 </div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt="照片放大"></div>
 
 <div class="toast" id="toast"></div>
 
@@ -402,6 +422,28 @@ const GLOSSARY = [
   {t:'網格修復', rx:'網格修復|修復模型|mesh\\s?(repair|mixer)|meshmixer', cat:'3D列印', def:'修補 STL 破面/反向法線的處理，切片軟體多半內建簡易修復。'},
 ];
 
+// 術語示意圖：3D 課「用看的」才懂的觀念，附極簡線圖（key 對應 GLOSSARY 的 t）
+const FIG_S = 'fill="none" stroke="#403b34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const FIG_A = 'fill="none" stroke="#4a7d74" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const FIG_D = 'fill="none" stroke="#b07a5b" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"';
+const FIG_T = 'font-size="11" fill="#8b8478" font-family="sans-serif"';
+const FIGS = {
+'EXTRUDE（擠出）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M30 95l25-14 30 8-25 15z"/></g><g ${FIG_A}><path d="M150 60h30m0 0l-8-6m8 6l-8 6"/></g><g ${FIG_S}><path d="M225 88l25-14 30 8-25 15z"/><path d="M225 88v-30l25-14 30 8v30M250 74v30M280 52v30"/></g><text x="30" y="118" ${FIG_T}>封閉的2D輪廓</text><text x="222" y="118" ${FIG_T}>往上長出厚度→實體</text></svg>`,
+'REVOLVE（迴轉）': `<svg viewBox="0 0 340 130"><g ${FIG_D}><path d="M80 15v100"/></g><g ${FIG_S}><path d="M85 25c20 5 12 25 6 35s-2 30 14 45"/></g><g ${FIG_A}><path d="M150 60h28m0 0l-8-6m8 6l-8 6"/></g><g ${FIG_S}><path d="M225 30c22 6 14 24 7 34s-3 28 15 46M295 30c-22 6-14 24-7 34s3 28-15 46M225 30c11 5 24 5 35 0M210 110c17 8 43 8 55 0"/></g><text x="92" y="122" ${FIG_T}>斷面＋軸</text><text x="228" y="122" ${FIG_T}>繞軸轉出（像車床）</text></svg>`,
+'SWEEP（掃掠）': `<svg viewBox="0 0 340 130"><g ${FIG_D}><path d="M30 100C80 100 90 40 150 40"/></g><g ${FIG_S}><ellipse cx="30" cy="100" rx="9" ry="12"/></g><g ${FIG_A}><path d="M175 60h26m0 0l-8-6m8 6l-8 6"/></g><g ${FIG_S}><path d="M225 105C265 105 272 50 310 50M225 82C275 82 280 28 310 28M225 105c-6-7-6-16 0-23M310 50c6-4 6-18 0-22"/></g><text x="46" y="118" ${FIG_T}>斷面沿路徑走</text><text x="235" y="122" ${FIG_T}>水管、扶手</text></svg>`,
+'LOFT（斷面混成）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><ellipse cx="60" cy="105" rx="34" ry="10"/><ellipse cx="60" cy="25" rx="14" ry="6"/></g><g ${FIG_D}><path d="M26 105C34 65 42 45 46 25M94 105c-8-40-16-60-20-80"/></g><g ${FIG_A}><path d="M150 60h26m0 0l-8-6m8 6l-8 6"/></g><g ${FIG_S}><ellipse cx="255" cy="105" rx="34" ry="10"/><ellipse cx="255" cy="25" rx="14" ry="6"/><path d="M221 105C229 65 237 45 241 25M289 105c-8-40-16-60-20-80"/></g><text x="30" y="128" ${FIG_T} style="display:none"></text><text x="205" y="70" ${FIG_T}></text><text x="120" y="118" ${FIG_T}>不同斷面之間長出漸變形（花瓶）</text></svg>`,
+'FILLET（圓角）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M40 110V40h70"/></g><g ${FIG_A}><path d="M150 110V64c0-13 11-24 24-24h46"/></g><g ${FIG_S}><path d="M260 110V72l32-32h28"/></g><text x="36" y="126" ${FIG_T}>直角</text><text x="152" y="126" ${FIG_T}>FILLET 圓角</text><text x="262" y="126" ${FIG_T}>CHAMFER 倒角</text></svg>`,
+'OFFSET（偏移）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M40 105C90 25 190 25 300 95"/></g><g ${FIG_A}><path d="M55 118C100 50 185 50 285 112"/></g><g ${FIG_D}><path d="M95 62l12 18M170 40l4 20M245 62l-10 18"/></g><text x="120" y="25" ${FIG_T}>平行複製固定距離（畫牆超好用）</text></svg>`,
+'MIRROR（鏡射）': `<svg viewBox="0 0 340 130"><g ${FIG_D}><path d="M170 12v106"/></g><g ${FIG_S}><path d="M60 100l40-60 30 25 15-15v50z"/></g><g ${FIG_A}><path d="M280 100l-40-60-30 25-15-15v50z"/></g><text x="110" y="125" ${FIG_T}>畫一半，對稱複製另一半</text></svg>`,
+'層高（Layer Height）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M60 110h90M60 96h90M60 82h90M60 68h90M60 54h90"/><path d="M60 110V54M150 110V54"/></g><g ${FIG_A}><path d="M175 96v14m0-14l-5 5m5-5l5 5m-5-14v-4"/></g><g ${FIG_S}><path d="M230 110h80M230 88h80M230 66h80M230 110V66M310 110V66"/></g><text x="58" y="126" ${FIG_T}>0.1mm 細緻慢</text><text x="228" y="126" ${FIG_T}>0.3mm 粗糙快</text></svg>`,
+'填充（Infill）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><rect x="45" y="30" width="80" height="80" rx="4"/></g><g ${FIG_A}><path d="M45 70h80M85 30v80M45 45l65 65M60 30l65 65M45 95l15 15M110 30l15 15"/></g><g ${FIG_S}><rect x="215" y="30" width="80" height="80" rx="4"/></g><g ${FIG_A}><path d="M215 75l60 35M235 30l60 40"/></g><text x="48" y="126" ${FIG_T}>40% 受力件</text><text x="218" y="126" ${FIG_T}>10% 裝飾件</text></svg>`,
+'支撐（Support）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M30 110h280"/><path d="M60 110V40h60v30h60v40"/></g><g ${FIG_D}><path d="M130 80v30M150 80v30M170 80v30"/></g><g ${FIG_A}><path d="M225 110l45-60"/><path d="M225 110h55"/><path d="M253 110a30 30 0 0 0-10-22"/></g><text x="196" y="76" ${FIG_T}>&gt;45°懸空要支撐</text><text x="98" y="126" ${FIG_T}>虛線＝列印後拆掉的支撐材</text></svg>`,
+'底板附著（Brim/Raft）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><path d="M20 110h300"/><rect x="60" y="60" width="44" height="50"/></g><g ${FIG_A}><path d="M42 110h80"/></g><g ${FIG_S}><rect x="200" y="60" width="44" height="42"/></g><g ${FIG_A}><rect x="186" y="102" width="72" height="8" rx="2"/></g><text x="46" y="52" ${FIG_T}>Brim 帽簷</text><text x="192" y="52" ${FIG_T}>Raft 底筏</text><text x="80" y="126" ${FIG_T}>幫第一層黏牢、防翹曲</text></svg>`,
+'SHELL（薄殼）': `<svg viewBox="0 0 340 130"><g ${FIG_S}><rect x="45" y="35" width="75" height="75" rx="4" fill="#efeae0"/></g><g ${FIG_A}><path d="M150 72h26m0 0l-8-6m8 6l-8 6"/></g><g ${FIG_S}><rect x="215" y="35" width="75" height="75" rx="4"/><rect x="228" y="48" width="49" height="62"/></g><text x="52" y="126" ${FIG_T}>實心費料</text><text x="212" y="126" ${FIG_T}>抽成固定壁厚的殼</text></svg>`,
+};
+FIGS['CHAMFER（倒角）'] = FIGS['FILLET（圓角）'];
+FIGS['懸空／懸垂（Overhang）'] = FIGS['支撐（Support）'];
+
 // 聽錯字直接校正（比術語表更粗暴的取代，只放很有把握的）
 const FIXES = [
   [/奧圖凱德|歐圖凱德|歐頭凱德|奧頭凱德|凹頭凱德|凹凸凱德/g, 'AutoCAD'],
@@ -456,6 +498,7 @@ function highlight(s){
    三、句子分類（規則式筆記引擎）
    ================================================================ */
 const TAGS = {
+  photo:{label:'照片',  color:'#6b7c8c'},
   todo: {label:'作業',  color:'var(--tag-todo)'},
   warn: {label:'重點',  color:'var(--tag-warn)'},
   key:  {label:'快捷鍵',color:'var(--tag-key)'},
@@ -510,6 +553,76 @@ function saveCurrent(){ try{ localStorage.setItem(LS_CUR, JSON.stringify(cur)); 
 function loadSessions(){ try{ return JSON.parse(localStorage.getItem(LS_SESS)) || []; }catch(e){ return []; } }
 function saveSessions(list){ try{ localStorage.setItem(LS_SESS, JSON.stringify(list)); }catch(e){} }
 
+/* ---------- 照片存 IndexedDB（localStorage 放不下圖片） ---------- */
+let idbP = null;
+function idbOpen(){
+  if (idbP) return idbP;
+  idbP = new Promise((res, rej) => {
+    const r = indexedDB.open('classnote', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('imgs');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return idbP;
+}
+async function imgPut(id, dataUrl){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const t = db.transaction('imgs', 'readwrite');
+    t.objectStore('imgs').put(dataUrl, id);
+    t.oncomplete = res; t.onerror = () => rej(t.error);
+  });
+}
+async function imgGet(id){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const q = db.transaction('imgs').objectStore('imgs').get(id);
+    q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error);
+  });
+}
+async function imgDel(id){
+  const db = await idbOpen();
+  return new Promise((res) => {
+    const t = db.transaction('imgs', 'readwrite');
+    t.objectStore('imgs').delete(id);
+    t.oncomplete = res; t.onerror = res;
+  });
+}
+// 把容器裡 <img data-imgid> 的圖從 IndexedDB 補上
+function hydrateImages(root){
+  root.querySelectorAll('img[data-imgid]:not([src])').forEach(img => {
+    imgGet(img.dataset.imgid).then(d => { if (d) img.src = d; });
+  });
+}
+
+// 拍照/選圖 → 縮到 1280px、壓 JPEG → 存 IndexedDB → 插進逐字稿時間軸
+function addPhoto(file){
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    const scale = Math.min(1, 1280 / Math.max(im.width, im.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(im.width * scale);
+    cv.height = Math.round(im.height * scale);
+    cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    const dataUrl = cv.toDataURL('image/jpeg', 0.62);
+    ensureSession();
+    const imgId = newId();
+    imgPut(imgId, dataUrl).then(() => {
+      const entry = { imgId, ts: Date.now(), tag: 'photo' };
+      cur.entries.push(entry);
+      renderTranscriptLine(entry);
+      renderNotes();
+      updateCounts();
+      saveCurrent();
+      toast('照片已插進筆記');
+    }).catch(() => toast('照片儲存失敗（空間不足？）'));
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); toast('讀不到這張圖片'); };
+  im.src = url;
+}
+
 /* ================================================================
    五、加入一句話 → 逐字稿 + 筆記 + 術語
    ================================================================ */
@@ -540,8 +653,12 @@ function renderTranscriptLine(entry){
   $('trEmpty') && $('trEmpty').remove();
   const div = document.createElement('div');
   div.className = 'tr-line';
-  div.innerHTML = `<span class="tr-time">${fmtClock(new Date(entry.ts))}</span><span class="tr-text">${highlight(entry.t)}</span>`;
+  const body = entry.imgId
+    ? `<img class="snap" data-imgid="${entry.imgId}" alt="上課照片">`
+    : highlight(entry.t);
+  div.innerHTML = `<span class="tr-time">${fmtClock(new Date(entry.ts))}</span><span class="tr-text">${body}</span>`;
   $('trBody').appendChild(div);
+  hydrateImages(div);
   $('trBody').scrollTop = $('trBody').scrollHeight;
 }
 
@@ -583,6 +700,8 @@ function renderNotes(){
     body.insertBefore(d, aiOut);
     return;
   }
+  // 新手模式：第一次講到有圖解的觀念，圖直接跟在那句筆記下面（不用自己去點術語）
+  const figShown = new Set();
   for (const b of blocks){
     const div = document.createElement('div');
     div.className = 'nt-block';
@@ -590,10 +709,21 @@ function renderNotes(){
     div.innerHTML = `<div class="nt-blockhead">${fmtClock(t0)} 左右</div>` +
       b.items.map(e => {
         const tag = TAGS[e.tag];
-        return `<div class="nt-item"><span class="nt-tag" style="background:${tag.color}">${tag.label}</span><span>${highlight(e.t)}</span></div>`;
+        const content = e.imgId
+          ? `<img class="snap" data-imgid="${e.imgId}" alt="上課照片">`
+          : highlight(e.t);
+        let figs = '';
+        if (e.t) for (const g of detectTerms(e.t)){
+          if (FIGS[g.t] && !figShown.has(FIGS[g.t])){
+            figShown.add(FIGS[g.t]);
+            figs += `<div class="term-fig">${FIGS[g.t]}</div>`;
+          }
+        }
+        return `<div class="nt-item"><span class="nt-tag" style="background:${tag.color}">${tag.label}</span><span style="min-width:0">${content}${figs}</span></div>`;
       }).join('');
     body.insertBefore(div, aiOut);
   }
+  hydrateImages(body);
   body.scrollTop = body.scrollHeight;
 }
 
@@ -620,14 +750,15 @@ function renderTerms(){
       }
       btn.classList.add('open');
       def.dataset.t = g.t;
-      def.innerHTML = `<b>${esc(g.t)}</b><span class="cat">${esc(g.cat)}</span><br>${esc(g.def)}`;
+      const fig = FIGS[g.t] ? `<div class="term-fig">${FIGS[g.t]}</div>` : '';
+      def.innerHTML = `<b>${esc(g.t)}</b><span class="cat">${esc(g.cat)}</span><br>${esc(g.def)}${fig}`;
       def.classList.add('show');
     };
   });
 }
 
 function updateCounts(){
-  $('trCnt').textContent = cur ? `${cur.entries.length} 句` : '';
+  $('trCnt').textContent = cur ? `${cur.entries.filter(e => !e.imgId).length} 句` : '';
   const n = cur ? cur.entries.filter(e => e.tag).length : 0;
   $('ntCnt').textContent = n ? `${n} 條` : '';
   $('tmCnt').textContent = seenTerms.size ? `${seenTerms.size} 個` : '';
@@ -689,10 +820,26 @@ function updateTimer(){
 
 $('recBtn').onclick = () => recording ? stopRec() : startRec();
 
+/* ---------- 拍照 / 照片放大 ---------- */
+$('camBtn').onclick = () => $('camFile').click();
+$('camFile').onchange = (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (f) addPhoto(f);
+  e.target.value = '';
+};
+document.addEventListener('click', (e) => {
+  if (e.target.classList && e.target.classList.contains('snap') && e.target.src){
+    $('lightboxImg').src = e.target.src;
+    $('lightbox').classList.add('show');
+  }
+});
+$('lightbox').onclick = () => $('lightbox').classList.remove('show');
+
 /* ================================================================
    八、Markdown 匯出
    ================================================================ */
-function buildMarkdown(sess){
+// withImages=true 時把照片以 base64 內嵌進 Markdown（檔案會變大，但單檔帶著走）
+async function buildMarkdown(sess, withImages = true){
   const d = new Date(sess.startedAt);
   const lines = [];
   lines.push(`# ${sess.title}`);
@@ -712,13 +859,22 @@ function buildMarkdown(sess){
     for (const e of tagged){
       const s = Math.floor(e.ts / 600000);
       if (s !== slot){ slot = s; lines.push(`### ${fmtClock(new Date(e.ts))} 左右`); }
-      lines.push(`- **[${TAGS[e.tag].label}]** ${e.t}`);
+      if (e.imgId){
+        if (withImages){
+          const data = await imgGet(e.imgId);
+          if (data) lines.push(`![上課照片 ${fmtClock(new Date(e.ts))}](${data})`);
+        } else {
+          lines.push(`- 【照片】${fmtClock(new Date(e.ts))}（見匯出的 Markdown 檔）`);
+        }
+      } else {
+        lines.push(`- **[${TAGS[e.tag].label}]** ${e.t}`);
+      }
     }
     lines.push('');
   }
   // 術語表
   const terms = new Map();
-  sess.entries.forEach(e => detectTerms(e.t).forEach(g => terms.set(g.t, g)));
+  sess.entries.forEach(e => detectTerms(e.t || '').forEach(g => terms.set(g.t, g)));
   if (terms.size){
     lines.push('## 本堂術語');
     lines.push('');
@@ -729,7 +885,10 @@ function buildMarkdown(sess){
   }
   lines.push('## 完整逐字稿');
   lines.push('');
-  for (const e of sess.entries) lines.push(`- ${fmtClock(new Date(e.ts))} ${e.t}`);
+  for (const e of sess.entries){
+    if (e.imgId) continue; // 照片已放在重點區
+    lines.push(`- ${fmtClock(new Date(e.ts))} ${e.t}`);
+  }
   return lines.join('\n');
 }
 
@@ -890,21 +1049,24 @@ $('saveBtn').onclick = () => {
   renderSessions();
 };
 
-$('exportBtn').onclick = () => {
+$('exportBtn').onclick = async () => {
   if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
-  download(`${cur.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, buildMarkdown(cur));
+  download(`${cur.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, await buildMarkdown(cur));
 };
 
 $('copyBtn').onclick = async () => {
   if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
-  try{ await navigator.clipboard.writeText(buildMarkdown(cur)); toast('筆記已複製（Markdown）'); }
+  try{ await navigator.clipboard.writeText(await buildMarkdown(cur, false)); toast('筆記已複製（Markdown，照片請用匯出）'); }
   catch(e){ toast('複製失敗，請改用匯出'); }
 };
+
+const deleteSessionImages = (sess) => (sess.entries || []).forEach(e => { if (e.imgId) imgDel(e.imgId); });
 
 $('clearBtn').onclick = () => {
   if (!cur || !cur.entries.length){ toast('本來就是空的'); return; }
   if (!confirm('清除這場的逐字稿與筆記？（已儲存的歷史場次不受影響）')) return;
   stopRec();
+  deleteSessionImages(cur);
   cur = null;
   localStorage.removeItem(LS_CUR);
   resetView();
@@ -931,20 +1093,22 @@ function renderSessions(){
   wrap.innerHTML = '';
   for (const s of list){
     const d = new Date(s.startedAt);
-    const n = s.entries.filter(e => e.tag).length;
+    const photos = s.entries.filter(e => e.imgId).length;
+    const n = s.entries.filter(e => e.tag && !e.imgId).length;
     const div = document.createElement('div');
     div.className = 'sess';
     div.innerHTML = `
       <span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
       <span class="mid"><span class="nm">${esc(s.title)}</span>
-        <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length} 句逐字稿 · ${n} 條筆記${s.aiMd ? ' · 含AI整理' : ''}</span></span>
+        <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length - photos} 句 · ${n} 條筆記${photos ? ` · ${photos} 張照片` : ''}${s.aiMd ? ' · 含AI整理' : ''}</span></span>
       <button class="dl" title="下載 Markdown"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
       <button class="open" title="開啟繼續記"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button class="del" title="刪除"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`;
-    div.querySelector('.dl').onclick = () => download(`${s.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, buildMarkdown(s));
+    div.querySelector('.dl').onclick = async () => download(`${s.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, await buildMarkdown(s));
     div.querySelector('.open').onclick = () => { openSession(s); };
     div.querySelector('.del').onclick = () => {
       if (!confirm(`刪除「${s.title}」？`)) return;
+      deleteSessionImages(s);
       saveSessions(loadSessions().filter(x => x.id !== s.id));
       renderSessions();
     };
@@ -956,7 +1120,7 @@ function openSession(s){
   stopRec();
   cur = s;
   seenTerms.clear();
-  cur.entries.forEach(e => detectTerms(e.t).forEach(g => seenTerms.set(g.t, g)));
+  cur.entries.forEach(e => detectTerms(e.t || '').forEach(g => seenTerms.set(g.t, g)));
   $('sessTitle').value = s.title;
   renderTranscriptAll();
   renderNotes();
@@ -988,7 +1152,7 @@ function toast(msg){
     if (saved && saved.entries && saved.entries.length){
       cur = saved;
       $('sessTitle').value = cur.title;
-      cur.entries.forEach(e => detectTerms(e.t).forEach(g => seenTerms.set(g.t, g)));
+      cur.entries.forEach(e => detectTerms(e.t || '').forEach(g => seenTerms.set(g.t, g)));
       renderTranscriptAll();
       renderNotes();
       renderTerms();
