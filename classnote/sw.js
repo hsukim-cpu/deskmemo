@@ -1,6 +1,6 @@
 // 課堂筆記 Service Worker：讓 App 殼層離線可開
 // 注意：語音辨識(Web Speech API)與 AI 整理需要網路，離線時只能看已存的筆記與手動輸入
-const CACHE = 'classnote-v1';
+const CACHE = 'classnote-v2';
 const ASSETS = ['.', 'index.html', 'manifest.json', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
