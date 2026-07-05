@@ -1,0 +1,15 @@
+{
+  "name": "課堂筆記 — AutoCAD AI輔助繪圖與3D列印",
+  "short_name": "課堂筆記",
+  "description": "課堂收音、自動逐字稿、內建 AutoCAD/3D列印術語知識庫的自動筆記工具",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

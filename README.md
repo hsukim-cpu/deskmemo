@@ -3,6 +3,10 @@
 給容易忘東忘西的人：便條紙釘在螢幕最上層，關機想落跑會被警示音擋下來。
 Windows / Mac 通用。
 
+> 這個 repo 還住著兩個網頁小工具（GitHub Pages 直接開，免安裝）：
+> - **[唸記帳](https://hsukim-cpu.github.io/deskmemo/expense/)** — 說一句話自動記一筆帳（[說明](expense/README.md)）
+> - **[課堂筆記](https://hsukim-cpu.github.io/deskmemo/classnote/)** — 上課收音自動產生逐字稿與筆記，內建 AutoCAD／3D列印術語知識庫（[說明](classnote/README.md)）
+
 ## 下載安裝（不用懂程式）
 
 直接點自己電腦對應的連結（永久有效，永遠指向最新版）：

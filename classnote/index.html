@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>課堂筆記 — AutoCAD AI輔助繪圖與3D列印</title>
+<meta name="theme-color" content="#f4f1ea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="課堂筆記">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png?v=1">
+<link rel="icon" href="icon-512.png?v=1">
+<style>
+  :root{
+    --paper:#f4f1ea; --card:#fcfbf7; --soft:#efeae0; --tint:#e9ecea; --line:#e4ddcf;
+    --txt:#3c3833; --sub:#8b8478; --faint:#bdb6a7;
+    --ink:#403b34;              /* 炭墨：主要按鈕 */
+    --accent:#4a7d74;           /* 墨綠：課堂筆記的點綴色（跟唸記帳的陶土色區分） */
+    --accentSoft:rgba(74,125,116,.12);
+    --danger:#b5563f;
+    --tag-cmd:#4a7d74; --tag-warn:#b5563f; --tag-def:#6b5ea8; --tag-step:#8c6d3f; --tag-key:#3f6d8c; --tag-todo:#a8471f;
+    --shadow:0 1px 2px rgba(60,52,40,.04), 0 6px 18px rgba(60,52,40,.04);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; overflow-x:hidden; color:var(--txt); background:var(--paper);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 40px) env(safe-area-inset-left);}
+  .wrap{max-width:1060px; margin:0 auto; padding:20px 18px;}
+  .i{width:1.25em; height:1.25em; display:block; fill:none; stroke:currentColor;
+    stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round;}
+  button{font-family:inherit;}
+
+  header{display:flex; align-items:center; gap:11px; padding:4px 2px 2px; flex-wrap:wrap;}
+  header .mark{width:34px; height:34px; border-radius:9px; background:var(--ink);
+    display:flex; align-items:center; justify-content:center; color:var(--paper); font-size:18px;}
+  header h1{font-size:20px; margin:0; font-weight:600; letter-spacing:3px;}
+  header .course{margin-left:auto; font-size:12px; color:var(--sub); letter-spacing:1px; text-align:right; line-height:1.5;}
+
+  /* 錄音卡 */
+  .rec-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin:18px 0 14px;
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .bigrec{display:flex; align-items:center; justify-content:center; width:84px; height:84px; flex:0 0 auto;
+    border:none; border-radius:50%; background:var(--ink); color:var(--paper); transition:transform .12s, background .2s; cursor:pointer;}
+  .bigrec .i{width:38px; height:38px; stroke-width:1.6;}
+  .bigrec:active{transform:scale(.95);}
+  .bigrec.live{background:var(--accent); animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(74,125,116,.45)} 50%{box-shadow:0 0 0 14px rgba(74,125,116,0)}}
+  .rec-mid{flex:1; min-width:220px;}
+  .rec-status{font-size:14px; color:var(--sub); letter-spacing:1px;}
+  .rec-status b{color:var(--txt);}
+  .rec-timer{font-size:26px; font-weight:600; font-variant-numeric:tabular-nums; margin-top:4px; letter-spacing:1px;}
+  .interim{margin-top:8px; min-height:22px; font-size:14px; color:var(--accent); line-height:1.6;}
+  .rec-side{display:flex; flex-direction:column; gap:8px; align-items:stretch;}
+  .rec-side input{background:var(--soft); border:1px solid var(--line); border-radius:9px; padding:9px 12px;
+    font-size:14px; color:var(--txt); font-family:inherit; min-width:220px;}
+  .rec-side input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accentSoft);}
+  .nosupport{background:#f7ede4; border:1px solid #e3c9ae; color:#7d5a36; border-radius:12px; padding:12px 15px;
+    font-size:13.5px; line-height:1.7; margin:0 0 14px; display:none;}
+
+  /* 工具列 */
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px;}
+  .tbtn{display:flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--card);
+    color:var(--txt); border-radius:10px; padding:9px 14px; font-size:13.5px; letter-spacing:1px; cursor:pointer; transition:all .12s;}
+  .tbtn:active{background:var(--soft);}
+  .tbtn.primary{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .tbtn.ai{background:var(--accentSoft); color:var(--accent); border-color:var(--accent);}
+  .tbtn:disabled{opacity:.45; cursor:default;}
+
+  /* 雙欄 */
+  .panes{display:grid; grid-template-columns:1fr 1.2fr; gap:14px;}
+  @media (max-width:840px){ .panes{grid-template-columns:1fr;} }
+  .pane{background:var(--card); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; min-height:280px;}
+  .pane-head{display:flex; align-items:center; gap:8px; padding:12px 15px 10px; border-bottom:1px solid var(--line);
+    font-size:12px; color:var(--sub); letter-spacing:2.5px;}
+  .pane-head .cnt{margin-left:auto; letter-spacing:.5px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .pane-body{flex:1; overflow-y:auto; padding:12px 15px 16px; max-height:520px; scroll-behavior:smooth;}
+
+  /* 逐字稿 */
+  .tr-line{display:flex; gap:10px; margin-bottom:9px; font-size:14.5px; line-height:1.7;}
+  .tr-time{color:var(--faint); font-size:11.5px; font-variant-numeric:tabular-nums; flex:0 0 auto; padding-top:3px;}
+  .tr-text b.term{color:var(--accent); font-weight:600;}
+  .tr-empty{color:var(--faint); font-size:13.5px; text-align:center; padding:40px 10px; line-height:2;}
+
+  /* 筆記 */
+  .nt-block{margin-bottom:16px;}
+  .nt-blockhead{font-size:11.5px; color:var(--faint); letter-spacing:2px; margin-bottom:8px;
+    display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums;}
+  .nt-blockhead::after{content:""; flex:1; height:1px; background:var(--line);}
+  .nt-item{display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; font-size:14.5px; line-height:1.75;}
+  .nt-tag{flex:0 0 auto; font-size:10.5px; letter-spacing:1.5px; border-radius:6px; padding:3px 7px; margin-top:3px;
+    color:#fff; opacity:.9;}
+  .nt-item b.term{color:var(--accent); font-weight:600; border-bottom:1px dotted var(--accent); cursor:help;}
+  .nt-item .why{color:var(--faint); font-size:12px;}
+
+  /* AI 筆記 */
+  .ai-out{border-top:1px dashed var(--line); margin-top:8px; padding-top:12px; display:none;}
+  .ai-out.show{display:block;}
+  .ai-out .ai-head{font-size:11.5px; color:var(--accent); letter-spacing:2px; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .ai-md{font-size:14.5px; line-height:1.8; white-space:normal; word-break:break-word;}
+  .ai-md h1,.ai-md h2,.ai-md h3{font-size:15.5px; margin:14px 0 6px; letter-spacing:1px;}
+  .ai-md h1{font-size:17px;} .ai-md ul,.ai-md ol{margin:4px 0 10px; padding-left:22px;}
+  .ai-md li{margin-bottom:4px;} .ai-md code{background:var(--soft); border-radius:5px; padding:1px 6px; font-size:13px;}
+  .ai-md table{border-collapse:collapse; margin:8px 0; font-size:13.5px;}
+  .ai-md th,.ai-md td{border:1px solid var(--line); padding:5px 10px;}
+  .ai-md blockquote{margin:8px 0; padding:6px 12px; border-left:3px solid var(--accent); background:var(--accentSoft); border-radius:0 8px 8px 0;}
+
+  /* 術語 */
+  .terms{background:var(--card); border:1px solid var(--line); border-radius:14px; margin-top:14px; padding:12px 15px 14px;}
+  .terms .pane-head{border:none; padding:0 0 10px;}
+  .term-cats{display:flex; flex-direction:column; gap:10px;}
+  .term-cat .tc-name{font-size:11.5px; color:var(--faint); letter-spacing:2px; margin-bottom:7px;}
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{border:1px solid var(--line); background:var(--soft); border-radius:999px; padding:6px 13px;
+    font-size:13px; cursor:pointer; transition:all .12s; color:var(--txt);}
+  .chip:hover,.chip.open{background:var(--accentSoft); border-color:var(--accent); color:var(--accent);}
+  .term-def{display:none; margin-top:10px; background:var(--soft); border:1px solid var(--line); border-radius:11px;
+    padding:12px 15px; font-size:13.8px; line-height:1.8;}
+  .term-def.show{display:block;}
+  .term-def b{color:var(--accent);}
+  .term-def .cat{font-size:11px; color:var(--faint); letter-spacing:2px; margin-left:8px;}
+
+  /* 手動輸入 */
+  .manual{margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 15px;}
+  .manual summary{font-size:12px; color:var(--sub); letter-spacing:2px; cursor:pointer; list-style:none;}
+  .manual summary::-webkit-details-marker{display:none;}
+  .manual[open] summary{margin-bottom:10px;}
+  .manual textarea{width:100%; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:12px;
+    font-size:15px; min-height:64px; line-height:1.6; font-family:inherit; resize:vertical; color:var(--txt);}
+  .manual textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accentSoft);}
+  .manual .hint{font-size:12px; color:var(--faint); margin-top:8px; line-height:1.7;}
+  .manual .row{display:flex; gap:8px; margin-top:8px;}
+
+  /* 歷史場次 */
+  .history{margin-top:16px;}
+  .history h2{font-size:13px; color:var(--sub); letter-spacing:2.5px; font-weight:500; margin:0 4px 10px;}
+  .sess{display:flex; align-items:center; gap:13px; background:var(--card); border:1px solid var(--line);
+    border-radius:13px; padding:13px 16px; margin-bottom:8px;}
+  .sess .ico{width:38px; height:38px; border-radius:10px; background:var(--tint); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+  .sess .mid{flex:1; min-width:0;}
+  .sess .nm{font-size:15px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sess .meta{font-size:12px; color:var(--sub); margin-top:3px; letter-spacing:.5px;}
+  .sess button{border:none; background:none; color:var(--sub); display:flex; padding:6px; cursor:pointer;}
+  .sess button:hover{color:var(--txt);}
+  .sess .del:hover{color:var(--danger);}
+  .hist-empty{color:var(--faint); font-size:13px; text-align:center; padding:18px;}
+
+  /* AI 設定 */
+  .modal-bg{position:fixed; inset:0; background:rgba(60,52,40,.35); display:none; align-items:center; justify-content:center; z-index:80; padding:20px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; max-width:480px; width:100%; box-shadow:var(--shadow);}
+  .modal h3{margin:0 0 6px; font-size:16px; letter-spacing:2px;}
+  .modal p{font-size:13px; color:var(--sub); line-height:1.8; margin:6px 0 14px;}
+  .modal input{width:100%; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:12px;
+    font-size:14px; font-family:ui-monospace,monospace; color:var(--txt);}
+  .modal input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accentSoft);}
+  .modal .acts{display:flex; gap:10px; margin-top:16px;}
+  .modal .acts button{flex:1; border:none; border-radius:10px; padding:12px; font-size:14px; letter-spacing:2px; cursor:pointer;}
+  .m-ok{background:var(--ink); color:var(--paper);}
+  .m-cancel{background:var(--card); color:var(--sub); border:1px solid var(--line)!important;}
+
+  .toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%) translateY(8px);
+    background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:999px; font-size:14px; letter-spacing:1px;
+    opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:90; max-width:86vw;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="mark">
+      <svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M16.5 5.5l4-2M16.5 8.5h4"/></svg>
+    </span>
+    <h1>課堂筆記</h1>
+    <span class="course">AutoCAD AI輔助繪圖與3D列印建模班<br>週日 09:30–16:30 · 管理大樓101電腦室</span>
+  </header>
+
+  <div class="rec-card">
+    <button class="bigrec" id="recBtn" aria-label="開始收音">
+      <svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8.5 21h7"/></svg>
+    </button>
+    <div class="rec-mid">
+      <div class="rec-status" id="recStatus">點麥克風開始收音，會即時轉逐字稿並自動整理筆記</div>
+      <div class="rec-timer" id="recTimer">00:00:00</div>
+      <div class="interim" id="interim"></div>
+    </div>
+    <div class="rec-side">
+      <input id="sessTitle" type="text" placeholder="場次名稱">
+    </div>
+  </div>
+
+  <div class="nosupport" id="nosupport">
+    這個瀏覽器不支援即時語音辨識。請改用<b>電腦版 Chrome / Edge</b>（辨識最穩），
+    或展開下方「手動輸入」用鍵盤聽寫（iPhone 鍵盤左下角麥克風）把老師的話唸進來。
+  </div>
+
+  <div class="toolbar">
+    <button class="tbtn primary" id="saveBtn"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>結束並儲存</button>
+    <button class="tbtn" id="exportBtn"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>匯出 Markdown</button>
+    <button class="tbtn" id="copyBtn"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>複製筆記</button>
+    <button class="tbtn ai" id="aiBtn"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>AI 整理筆記</button>
+    <button class="tbtn" id="aiKeyBtn"><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12L20 3M16 7l2 2M13 10l2 2"/></svg>AI 設定</button>
+    <button class="tbtn" id="clearBtn"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>清除本場</button>
+  </div>
+
+  <div class="panes">
+    <div class="pane">
+      <div class="pane-head">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        即時逐字稿<span class="cnt" id="trCnt"></span>
+      </div>
+      <div class="pane-body" id="trBody">
+        <div class="tr-empty" id="trEmpty">還沒有內容。<br>開始收音，或在下方「手動輸入」貼上文字。</div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="pane-head">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        自動筆記<span class="cnt" id="ntCnt"></span>
+      </div>
+      <div class="pane-body" id="ntBody">
+        <div class="tr-empty">聽到指令、定義、步驟、提醒時，<br>會自動抓進來變成條列筆記。</div>
+        <div class="ai-out" id="aiOut">
+          <div class="ai-head"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>AI 整理（Claude）</div>
+          <div class="ai-md" id="aiMd"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="terms">
+    <div class="pane-head">
+      <svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      本堂術語（點一下看解釋）<span class="cnt" id="tmCnt"></span>
+    </div>
+    <div class="term-cats" id="termCats">
+      <div class="hist-empty">課堂中提到的 AutoCAD／3D列印術語會出現在這裡。</div>
+    </div>
+    <div class="term-def" id="termDef"></div>
+  </div>
+
+  <details class="manual">
+    <summary>手動輸入／貼上（收音不方便時用）</summary>
+    <textarea id="manualText" placeholder="打字或貼上老師講的內容，一樣會自動校正術語、整理筆記"></textarea>
+    <div class="row">
+      <button class="tbtn primary" id="manualAdd" style="flex:1; justify-content:center;">加入逐字稿</button>
+    </div>
+    <div class="hint">手機上可點輸入框後用鍵盤的麥克風聽寫。就算用手動輸入，術語校正和自動筆記照樣有效。</div>
+  </details>
+
+  <div class="history">
+    <h2>歷史場次</h2>
+    <div id="sessList"><div class="hist-empty">還沒有存過場次。</div></div>
+  </div>
+</div>
+
+<!-- AI 設定 -->
+<div class="modal-bg" id="aiModal">
+  <div class="modal">
+    <h3>AI 整理設定</h3>
+    <p>「AI 整理筆記」會把整堂課逐字稿交給 Claude，用這門課的領域知識（AutoCAD 指令、3D列印參數）重新校對並整理成完整筆記。
+      需要你自己的 Anthropic API Key（<a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a> 申請）。
+      Key 只存在這台裝置的瀏覽器裡，逐字稿會直接從你的瀏覽器傳給 Anthropic，不經過其他伺服器。</p>
+    <input id="aiKeyInput" type="password" placeholder="sk-ant-...">
+    <div class="acts">
+      <button class="m-cancel" id="aiCancel">取消</button>
+      <button class="m-ok" id="aiSave">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   一、課程領域知識庫
+   這門課：AutoCAD AI輔助繪圖與3D列印建模班（1145L3022）
+   知識庫兩個用途：
+   1. 校正語音辨識聽錯的專有名詞（不會把「圖層」寫成「土層」）
+   2. 偵測課堂術語，附上解釋、在筆記裡標亮
+   ================================================================ */
+
+// 課程日期（週日、不上課日 7/26、8/9 已排除），用來自動命名場次
+const COURSE_DATES = ['2026-07-05','2026-07-12','2026-07-19','2026-08-02','2026-08-16','2026-08-23','2026-08-30'];
+
+// 術語表：t=標準寫法 rx=語音可能聽到的講法(regex) cat=分類 def=白話解釋
+const GLOSSARY = [
+  // ---- 基本觀念 / 環境 ----
+  {t:'AutoCAD', rx:'autocad|auto\\s?cad|奧圖凱德|歐圖凱德|歐頭凱德|奧頭凱德|凹頭凱德', cat:'觀念/設定', def:'Autodesk 出的電腦輔助設計（CAD）軟體，本課主要工具。'},
+  {t:'Autodesk（歐特克）', rx:'autodesk|歐特克|奧特克', cat:'觀念/設定', def:'AutoCAD 的開發公司，AI 輔助功能（Autodesk AI）都掛在它的平台上。'},
+  {t:'圖層（LAYER）', rx:'圖層|layer', cat:'觀念/設定', def:'把不同性質的線放在不同「透明片」上管理：可各自設顏色、線型、開關與鎖定。好圖檔的第一步就是圖層分清楚。'},
+  {t:'物件鎖點（OSNAP）', rx:'物件鎖點|鎖點|osnap|object\\s?snap', cat:'觀念/設定', def:'游標自動吸到端點、中點、圓心等精確位置。畫圖不準九成是鎖點沒開好，F3 開關。'},
+  {t:'正交（ORTHO）', rx:'正交|ortho', cat:'觀念/設定', def:'限制游標只能走水平/垂直，F8 開關。'},
+  {t:'極座標追蹤（POLAR）', rx:'極座標追蹤|極座標|polar', cat:'觀念/設定', def:'畫線時自動提示特定角度（30°、45°…），F10 開關。'},
+  {t:'動態輸入', rx:'動態輸入|dynamic\\s?input', cat:'觀念/設定', def:'游標旁直接顯示長度/角度輸入框，F12 開關。'},
+  {t:'指令列', rx:'指令列|指令行|command\\s?line', cat:'觀念/設定', def:'AutoCAD 下方輸入指令的地方，所有指令都能用鍵盤打，通常比點選單快。'},
+  {t:'UCS（使用者座標系統）', rx:'ucs|使用者座標', cat:'觀念/設定', def:'自訂的座標系統。3D 建模時常要把 UCS 轉到要畫的面上才好畫。'},
+  {t:'模型空間', rx:'模型空間|model\\s?space', cat:'觀念/設定', def:'1:1 實際尺寸畫圖的地方；出圖排版才到配置（圖紙空間）。'},
+  {t:'配置（LAYOUT）', rx:'配置|layout|圖紙空間', cat:'觀念/設定', def:'出圖排版用的空間，放圖框、標題欄，用視埠顯示模型內容。'},
+  {t:'視埠（VIEWPORT）', rx:'視埠|視口|viewport', cat:'觀念/設定', def:'配置裡開的「窗戶」，透過它看模型空間，可各自設比例。'},
+  {t:'出圖（PLOT）', rx:'出圖|plot|列印圖面', cat:'觀念/設定', def:'把圖印出或轉 PDF。重點在比例設定與線寬（筆寬）對應。'},
+  {t:'比例（SCALE設定）', rx:'比例尺|出圖比例', cat:'觀念/設定', def:'圖面與實物的尺寸關係，如 1:50。模型空間永遠 1:1 畫，比例在出圖/視埠才設。'},
+
+  // ---- 2D 繪圖指令 ----
+  {t:'LINE（線）', rx:'\\bline\\b|畫線指令', cat:'2D指令', def:'最基本的直線指令，快捷鍵 L。'},
+  {t:'PLINE（聚合線）', rx:'pline|聚合線|據合線|聚合縣|多段線', cat:'2D指令', def:'一筆畫成的連續線段（含弧），整條是一個物件，快捷鍵 PL。之後擠出 3D 或算面積都方便。'},
+  {t:'CIRCLE（圓）', rx:'circle|畫圓指令', cat:'2D指令', def:'畫圓，快捷鍵 C。有圓心半徑、兩點、三點、相切等畫法。'},
+  {t:'ARC（弧）', rx:'\\barc\\b|畫弧', cat:'2D指令', def:'畫圓弧，快捷鍵 A，預設逆時針方向。'},
+  {t:'RECTANG（矩形）', rx:'rectang|rectangle|畫矩形|長方形指令', cat:'2D指令', def:'畫矩形，快捷鍵 REC，可直接輸入長寬。'},
+  {t:'POLYGON（多邊形）', rx:'polygon|多邊形', cat:'2D指令', def:'畫正多邊形，POL，注意「內接於圓」跟「外切於圓」的差別。'},
+  {t:'ELLIPSE（橢圓）', rx:'ellipse|橢圓', cat:'2D指令', def:'畫橢圓，EL。'},
+  {t:'SPLINE（雲形線）', rx:'spline|雲形線|曲線指令', cat:'2D指令', def:'通過指定點的平滑曲線，畫不規則造型用。'},
+  {t:'HATCH（填充線）', rx:'hatch|填充線|剖面線|填充圖案', cat:'2D指令', def:'在封閉區域填剖面線或圖案，H。區域沒封閉會填不進去或跳錯誤。'},
+  {t:'TRIM（修剪）', rx:'trim|修剪', cat:'2D指令', def:'把多出來的線段沿邊界剪掉，TR。按住不放框選可以連續剪。'},
+  {t:'EXTEND（延伸）', rx:'extend|延伸指令', cat:'2D指令', def:'把線延長到邊界，EX。跟 TRIM 是一對，按 Shift 可互換。'},
+  {t:'OFFSET（偏移）', rx:'offset|偏移|偏移複製', cat:'2D指令', def:'平行複製一條線/圓，O。畫牆、畫同心結構最常用。'},
+  {t:'FILLET（圓角）', rx:'fillet|圓角|倒圓角|導圓角', cat:'2D指令', def:'兩線相交處導圓角，F。半徑設 0 可以拿來直接接角。'},
+  {t:'CHAMFER（倒角）', rx:'chamfer|倒角|導角|切角', cat:'2D指令', def:'兩線相交處切斜角，CHA。3D 列印件邊緣倒角可減少翹曲、好脫模。'},
+  {t:'MIRROR（鏡射）', rx:'mirror|鏡射|鏡設|鏡向|鏡像', cat:'2D指令', def:'以一條軸線對稱複製，MI。畫對稱圖只要畫一半。'},
+  {t:'ARRAY（陣列）', rx:'array|陣列', cat:'2D指令', def:'矩形/環形/路徑規則複製，AR。齒、孔、欄杆這種重複結構用它。'},
+  {t:'MOVE（移動）', rx:'\\bmove\\b|移動指令', cat:'2D指令', def:'移動物件，M。要抓準基準點。'},
+  {t:'COPY（複製）', rx:'\\bcopy\\b|複製指令', cat:'2D指令', def:'複製物件，CO/CP，可連續貼。'},
+  {t:'ROTATE（旋轉）', rx:'rotate|旋轉指令', cat:'2D指令', def:'繞基準點旋轉，RO，可用參考(R)對正角度。'},
+  {t:'SCALE（比例縮放）', rx:'\\bscale\\b|縮放指令|比例指令', cat:'2D指令', def:'等比放大縮小，SC，也能用參考(R)配尺寸。'},
+  {t:'STRETCH（拉伸）', rx:'stretch|拉伸', cat:'2D指令', def:'框到的端點跟著動、沒框到的不動，S。改長度不變形的利器，要用「框選(crossing)」。'},
+  {t:'EXPLODE（分解）', rx:'explode|分解指令|炸開', cat:'2D指令', def:'把聚合線/圖塊拆成個別物件，X。拆了就回不去，小心用。'},
+  {t:'JOIN（接合）', rx:'\\bjoin\\b|接合', cat:'2D指令', def:'把斷開的線段接回一條，J。'},
+  {t:'BREAK（切斷）', rx:'break|切斷指令', cat:'2D指令', def:'把一條線斷成兩段，BR。'},
+  {t:'BLOCK（圖塊）', rx:'block|圖塊|塊參照', cat:'2D指令', def:'把一組物件打包成可重複插入的元件，B；INSERT(I) 插入。改一個全部跟著改。'},
+  {t:'XREF（外部參考）', rx:'xref|外部參考', cat:'2D指令', def:'把別的 DWG 掛進來當底圖，原檔更新會跟著更新。'},
+  {t:'MTEXT（多行文字）', rx:'mtext|多行文字|文字指令', cat:'2D指令', def:'放文字說明，T。字高要配合出圖比例算。'},
+  {t:'標註（DIM）', rx:'標註|標駐|標柱|標珠|dimension|\\bdim\\b|尺寸標', cat:'2D指令', def:'標尺寸。用標註型式（DIMSTYLE）統一字高、箭頭，不要一個一個改。'},
+  {t:'多重引線（MLEADER）', rx:'多重引線|引線標註|mleader|leader', cat:'2D指令', def:'帶箭頭的說明文字，標零件號、註解用。'},
+  {t:'PURGE（清除）', rx:'purge|清除未用', cat:'2D指令', def:'清掉檔案裡沒用到的圖層、圖塊，幫檔案瘦身。'},
+  {t:'快速選取（QSELECT）', rx:'快速選取|qselect', cat:'2D指令', def:'依條件（同圖層、同顏色…）一次選到所有符合的物件。'},
+
+  // ---- 3D 建模 ----
+  {t:'EXTRUDE（擠出）', rx:'extrude|擠出|擠出成型|拉出高度', cat:'3D建模', def:'把封閉的 2D 輪廓往上長出厚度變實體，EXT。3D 建模最常用的第一步，輪廓必須封閉。'},
+  {t:'REVOLVE（迴轉）', rx:'revolve|迴轉|旋轉成型|車出來', cat:'3D建模', def:'把 2D 斷面繞一條軸轉出實體（像車床）。杯子、瓶子、軸類零件用它。'},
+  {t:'SWEEP（掃掠）', rx:'sweep|掃掠|掃出', cat:'3D建模', def:'讓斷面沿一條路徑長出實體，水管、彈簧、扶手用它。'},
+  {t:'LOFT（斷面混成）', rx:'loft|斷面混成|放樣', cat:'3D建模', def:'在多個不同斷面之間長出漸變實體，花瓶、船身這種漸變造型用它。'},
+  {t:'PRESSPULL（按拉）', rx:'presspull|press\\s?pull|按拉', cat:'3D建模', def:'點封閉區域直接推拉出實體或挖洞，比 EXTRUDE 直覺。'},
+  {t:'UNION（聯集）', rx:'union|聯集', cat:'3D建模', def:'把多個實體合併成一個。布林運算之一。'},
+  {t:'SUBTRACT（差集）', rx:'subtract|差集|減集', cat:'3D建模', def:'用一個實體把另一個挖掉（先選留的，再選扣的，順序錯結果就反了）。挖孔、挖槽用它。'},
+  {t:'INTERSECT（交集）', rx:'intersect|交集', cat:'3D建模', def:'只留兩實體重疊的部分。布林運算之一。'},
+  {t:'SLICE（切割）', rx:'\\bslice\\b|切割實體', cat:'3D建模', def:'用平面把實體切開，可只留一半。大件分件列印前常用。'},
+  {t:'SHELL（薄殼）', rx:'shell|薄殼|抽殼', cat:'3D建模', def:'把實心體挖成固定壁厚的殼，做盒子、外殼省料省列印時間。'},
+  {t:'面域（REGION）', rx:'面域|region', cat:'3D建模', def:'封閉輪廓轉成的 2D「面」物件，可做布林運算再擠出。'},
+  {t:'實體（SOLID）', rx:'實體建模|solid|索立德', cat:'3D建模', def:'有體積的 3D 物件。要 3D 列印的模型必須是封閉實體，不能只是面。'},
+  {t:'曲面（SURFACE）', rx:'曲面|surface', cat:'3D建模', def:'零厚度的面。曲面模型不能直接列印，要先封閉成實體。'},
+  {t:'網面（MESH）', rx:'網面|網格|mesh', cat:'3D建模', def:'由三角形/四邊形拼成的模型（STL 就是這種）。可雕塑變形，但編輯尺寸不如實體精準。'},
+  {t:'視覺型式', rx:'視覺型式|visual\\s?style|線架構|概念視覺|擬真', cat:'3D建模', def:'3D 顯示模式：2D線架構／概念／擬真等，只影響顯示不影響模型。'},
+  {t:'ViewCube／導覽', rx:'viewcube|視角方塊|環轉|orbit', cat:'3D建模', def:'右上角的方塊，點面/角快速轉視角；Shift+滾輪中鍵可環轉。'},
+
+  // ---- AI 輔助 ----
+  {t:'Autodesk AI', rx:'autodesk\\s?ai|ai\\s?功能|人工智慧輔助', cat:'AI輔助', def:'Autodesk 內建的 AI 功能總稱，包含智慧圖塊、標記輔助、指令巨集建議等。'},
+  {t:'智慧圖塊（Smart Blocks）', rx:'智慧圖塊|smart\\s?blocks?|聰明圖塊', cat:'AI輔助', def:'AI 依你過去的用法自動建議圖塊的取代與放置位置，加速重複元件配置。'},
+  {t:'標記輔助（Markup Assist）', rx:'標記輔助|標記匯入|markup\\s?(assist|import)', cat:'AI輔助', def:'把紙本/PDF 上的手寫紅字標記拍照匯入，AI 自動辨識成可執行的修改建議。'},
+  {t:'巨集建議（Macro Advisor）', rx:'巨集建議|巨集|macro\\s?advisor|command\\s?macro', cat:'AI輔助', def:'AI 觀察你的操作習慣，建議可一鍵完成的指令巨集，減少重複動作。'},
+  {t:'AutoLISP', rx:'autolisp|auto\\s?lisp|lisp', cat:'AI輔助', def:'AutoCAD 的程式語言，可寫自動化指令。現在流行用 ChatGPT/Claude 這類 AI 幫你生 LISP 程式。'},
+  {t:'生成式AI／衍生式設計', rx:'生成式|衍生式設計|generative\\s?design|文字生成模型|text\\s?to\\s?cad', cat:'AI輔助', def:'用 AI 依條件自動產生設計方案或 3D 模型（Text to CAD），課堂上通常示範概念與輔助工具。'},
+  {t:'提示詞（Prompt）', rx:'提示詞|prompt|下提示', cat:'AI輔助', def:'給 AI 的指令描述。描述越具體（尺寸、格式、限制條件），AI 產出越能用。'},
+
+  // ---- 3D 列印 ----
+  {t:'3D列印', rx:'3\\s?d\\s?列印|三[dD]列印|3d\\s?print', cat:'3D列印', def:'把 3D 模型一層一層堆疊成實物的製造方式（積層製造）。'},
+  {t:'FDM（熱熔融沉積）', rx:'fdm|熱熔融|熔融沉積|線材機', cat:'3D列印', def:'最常見的 3D 列印方式：加熱塑膠線材從噴嘴擠出一層層堆疊。便宜耐用，表面有層紋。'},
+  {t:'SLA／光固化', rx:'sla|光固化|光古化|光谷化|樹脂機', cat:'3D列印', def:'用光把液態樹脂逐層硬化，細節精緻表面滑，但材料較貴、後處理要清洗+二次固化。'},
+  {t:'切片（Slicing）', rx:'切片|slicer|slicing|切層', cat:'3D列印', def:'把 STL 模型切成一層層並產生 G-code 的過程。列印品質好壞一半取決於切片參數。'},
+  {t:'切片軟體', rx:'cura|prusa\\s?slicer|bambu\\s?studio|拓竹|切片軟體|orca\\s?slicer', cat:'3D列印', def:'常見：Cura、PrusaSlicer、Bambu Studio、OrcaSlicer。負責設層高、填充、支撐並輸出 G-code。'},
+  {t:'G-code', rx:'g\\s?-?\\s?code|g碼|居扣|雞扣|G扣', cat:'3D列印', def:'切片後給印表機的動作指令檔（走到哪、擠多少料、溫度多少）。'},
+  {t:'STL', rx:'stl|st檔|三角網格檔', cat:'檔案格式', def:'3D 列印最通用的模型格式，只存三角網格。AutoCAD 用 EXPORT/STLOUT 匯出，模型要先是封閉實體。'},
+  {t:'3MF', rx:'3mf', cat:'檔案格式', def:'比 STL 新的列印格式，可帶顏色、材料與切片設定。'},
+  {t:'OBJ', rx:'obj檔|\\bobj\\b', cat:'檔案格式', def:'常見 3D 格式，可帶貼圖，掃描模型常用。'},
+  {t:'DWG', rx:'dwg', cat:'檔案格式', def:'AutoCAD 原生圖檔格式。'},
+  {t:'DXF', rx:'dxf', cat:'檔案格式', def:'AutoCAD 的交換格式，給其他軟體（雷切、CAM）讀用。'},
+  {t:'層高（Layer Height）', rx:'層高|層厚|layer\\s?height', cat:'3D列印', def:'每層的厚度，常用 0.2mm。越小越細緻但列印時間倍增。'},
+  {t:'填充（Infill）', rx:'填充|天充|填衝|infill|填充率|填充密度', cat:'3D列印', def:'內部支撐結構的密度，常用 10–20%。裝飾件低填充省料，受力件要拉高。'},
+  {t:'支撐（Support）', rx:'支撐|之撐|support|支撐材', cat:'3D列印', def:'懸空處下面自動長的可拆結構。能靠擺向避免就避免，拆支撐會傷表面。'},
+  {t:'懸空／懸垂（Overhang）', rx:'懸空|懸垂|overhang|外飄', cat:'3D列印', def:'超過約 45° 的外飄面就需要支撐，設計時盡量控制在 45° 內。'},
+  {t:'橋接（Bridging）', rx:'橋接|bridge|bridging|跨橋', cat:'3D列印', def:'兩點之間水平懸空拉線的能力，短距離可以不加支撐。'},
+  {t:'底板附著（Brim/Raft）', rx:'brim|raft|skirt|裙邊|底筏|邊緣附著', cat:'3D列印', def:'幫第一層黏牢的輔助：Skirt（外圈試料）、Brim（帽簷）、Raft（底筏）。翹曲就加 Brim。'},
+  {t:'噴嘴（Nozzle）', rx:'噴嘴|噴頭|nozzle', cat:'3D列印', def:'擠出熔融塑料的口，常見 0.4mm。堵塞是最常見故障，聽到「堵料」通常說這裡。'},
+  {t:'熱床（Heated Bed）', rx:'熱床|加熱床|平台加熱|bed', cat:'3D列印', def:'加熱的列印平台，幫助第一層附著、減少翹曲。PLA 約 60°C。'},
+  {t:'擠出機（Extruder）', rx:'擠出機|extruder|進料', cat:'3D列印', def:'推送線材的機構。近端/遠端(Bowden)兩種，影響回抽設定。'},
+  {t:'回抽（Retraction）', rx:'回抽|retraction|回料', cat:'3D列印', def:'移動時把線材往回拉一點，避免牽絲。牽絲嚴重就調回抽距離/速度。'},
+  {t:'牽絲（Stringing）', rx:'牽絲|拉絲|stringing', cat:'3D列印', def:'移動路徑上留下細絲的瑕疵，靠回抽、降溫、烘乾線材改善。'},
+  {t:'翹曲（Warping）', rx:'翹曲|翹起來|warping|翹邊', cat:'3D列印', def:'冷卻收縮讓角落翹起。對策：熱床、Brim、關風扇印第一層、避免大平面直角。'},
+  {t:'第一層', rx:'第一層|首層|first\\s?layer', cat:'3D列印', def:'成敗關鍵層：要壓得夠扁、平台要調平。第一層失敗直接重印。'},
+  {t:'調平（Leveling）', rx:'調平|校平|leveling|自動調平', cat:'3D列印', def:'讓噴嘴跟平台距離一致。現在多有自動調平，但仍要會判斷第一層好壞。'},
+  {t:'PLA', rx:'pla|p\\s?l\\s?a|批\\s?l\\s?a', cat:'3D列印', def:'最好印的線材：低翹曲、無臭味，課堂首選。缺點怕熱（約60°C軟化）。'},
+  {t:'PETG', rx:'petg|pet\\s?g', cat:'3D列印', def:'比 PLA 耐熱耐衝擊、略難印會牽絲，做功能件常用。'},
+  {t:'ABS', rx:'abs樹脂|\\babs\\b', cat:'3D列印', def:'耐熱強度好但收縮大易翹曲、有味道，最好有密閉腔體再印。'},
+  {t:'TPU', rx:'tpu|軟料|彈性線材', cat:'3D列印', def:'軟性彈性材料，印手機殼、避震件；要印很慢。'},
+  {t:'樹脂（Resin）', rx:'樹脂|光固化樹枝|樹枝槽|resin', cat:'3D列印', def:'光固化機的液態材料，硬化前有毒性要戴手套，印完要酒精洗+UV二次固化。'},
+  {t:'公差（Tolerance）', rx:'公差|間隙設計|tolerance', cat:'3D列印', def:'配合件要預留的縫隙，FDM 通常單邊留 0.2mm 左右，卡榫太緊就是公差沒留。'},
+  {t:'壁厚（Wall）', rx:'壁厚|牆厚|外壁|wall\\s?(thickness|line)', cat:'3D列印', def:'外殼厚度，至少 2 條線寬（0.8mm）以上，受力件加厚比加填充有效。'},
+  {t:'水密／流形（Manifold）', rx:'水密|流形|manifold|破面|封閉性', cat:'3D列印', def:'模型必須完全封閉無破面才能切片。匯出 STL 前要檢查，破面會導致切片錯誤。'},
+  {t:'網格修復', rx:'網格修復|修復模型|mesh\\s?(repair|mixer)|meshmixer', cat:'3D列印', def:'修補 STL 破面/反向法線的處理，切片軟體多半內建簡易修復。'},
+];
+
+// 聽錯字直接校正（比術語表更粗暴的取代，只放很有把握的）
+const FIXES = [
+  [/奧圖凱德|歐圖凱德|歐頭凱德|奧頭凱德|凹頭凱德|凹凸凱德/g, 'AutoCAD'],
+  [/auto\s?cad/gi, 'AutoCAD'],
+  [/土層(?=[裡面上的開關鎖不])/g, '圖層'],
+  [/標[駐柱珠](?=[尺寸線的樣式型])/g, '標註'],
+  [/尺寸標[駐柱珠]/g, '尺寸標註'],
+  [/鏡設|靜射(?=[複製一])/g, '鏡射'],
+  [/據合線|聚合縣|巨合線/g, '聚合線'],
+  [/光古化|光谷化|光菇化/g, '光固化'],
+  [/(光固化|UV)樹枝/g, '$1樹脂'],
+  [/樹枝槽/g, '樹脂槽'],
+  [/居扣|雞扣|G扣|寄扣/g, 'G-code'],
+  [/天充率|填衝率/g, '填充率'],
+  [/之撐材/g, '支撐材'],
+  [/三[dD](?=列印|建模|模型|物件)/g, '3D'],
+  [/(?:^|(?<=[^A-Za-z]))([A-Z]) (?=[A-Z](?:[^A-Za-z]|$))/g, '$1'],   // "S T L" → "STL"
+];
+
+/* ================================================================
+   二、術語比對 / 文字校正
+   ================================================================ */
+const TERM_RX = GLOSSARY.map(g => ({ g, rx: new RegExp('(' + g.rx + ')', 'gi') }));
+
+function correctText(s){
+  for (const [rx, rep] of FIXES) s = s.replace(rx, rep);
+  return s;
+}
+
+// 回傳文中出現的術語（GLOSSARY 項目陣列，不重複）
+function detectTerms(s){
+  const found = [];
+  for (const {g, rx} of TERM_RX){
+    rx.lastIndex = 0;
+    if (rx.test(s)) found.push(g);
+  }
+  return found;
+}
+
+// 把文字裡的術語包上 <b class=term>（先跳脫 HTML）
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function highlight(s){
+  let html = esc(s);
+  for (const {g, rx} of TERM_RX){
+    rx.lastIndex = 0;
+    html = html.replace(rx, m => '\x01' + m + '\x02'); // 先做記號避免巢狀取代
+  }
+  return html.replace(/\x01/g, `<b class="term">`).replace(/\x02/g, '</b>');
+}
+
+/* ================================================================
+   三、句子分類（規則式筆記引擎）
+   ================================================================ */
+const TAGS = {
+  todo: {label:'作業',  color:'var(--tag-todo)'},
+  warn: {label:'重點',  color:'var(--tag-warn)'},
+  key:  {label:'快捷鍵',color:'var(--tag-key)'},
+  def:  {label:'定義',  color:'var(--tag-def)'},
+  step: {label:'步驟',  color:'var(--tag-step)'},
+  cmd:  {label:'指令',  color:'var(--tag-cmd)'},
+};
+
+function classify(s){
+  if (/作業|回家練習|下週交|下周交|繳交|要交|考試|會考|驗收|成果發表/.test(s)) return 'todo';
+  if (/注意|小心|千萬|不要忘|別忘|常見錯誤|容易錯|容易失敗|記得|一定要|重點|很重要|關鍵是|訣竅|眉角/.test(s)) return 'warn';
+  if (/快捷鍵|[Cc]trl|[Aa]lt|[Ss]hift|\bF\d{1,2}\b|[Ee]sc鍵?|空白鍵|滾輪|中鍵|右鍵選單/.test(s)) return 'key';
+  if (/就是|意思是|指的是|稱為|叫做|所謂|的定義|代表的是/.test(s)) return 'def';
+  if (/^(首先|第一步|第二步|第三步|再來|接下來|接著|然後|下一步|最後一步|最後)|步驟/.test(s)) return 'step';
+  if (detectTerms(s).length) return 'cmd';
+  return null; // 不進筆記，只留逐字稿
+}
+
+/* ================================================================
+   四、狀態 / 儲存
+   ================================================================ */
+const LS_SESS = 'classnote.sessions.v1';
+const LS_CUR  = 'classnote.current.v1';
+const LS_KEY  = 'classnote.apikey';
+
+let cur = null;          // {id,title,startedAt,entries:[{t,ts}],aiMd}
+let recording = false;
+let recognizer = null;
+let timerIv = null;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const fmtClock = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+function defaultTitle(){
+  const now = new Date();
+  const iso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const i = COURSE_DATES.indexOf(iso);
+  const md = `${now.getMonth()+1}/${now.getDate()}`;
+  return i >= 0 ? `第${i+1}堂 · ${md}` : `${md} 課堂`;
+}
+
+function ensureSession(){
+  if (!cur){
+    cur = { id:newId(), title: $('sessTitle').value.trim() || defaultTitle(), startedAt: Date.now(), entries: [], aiMd: '' };
+    if (!$('sessTitle').value) $('sessTitle').value = cur.title;
+  }
+  return cur;
+}
+function saveCurrent(){ try{ localStorage.setItem(LS_CUR, JSON.stringify(cur)); }catch(e){} }
+function loadSessions(){ try{ return JSON.parse(localStorage.getItem(LS_SESS)) || []; }catch(e){ return []; } }
+function saveSessions(list){ try{ localStorage.setItem(LS_SESS, JSON.stringify(list)); }catch(e){} }
+
+/* ================================================================
+   五、加入一句話 → 逐字稿 + 筆記 + 術語
+   ================================================================ */
+const seenTerms = new Map();   // t -> glossary item
+
+function addUtterance(raw, ts){
+  const text = correctText(raw.trim());
+  if (!text) return;
+  ensureSession();
+  // 依標點切句，各自分類
+  const parts = text.split(/(?<=[。？！；?!;])/).map(s => s.trim()).filter(Boolean);
+  for (const p of parts){
+    const entry = { t: p, ts: ts || Date.now(), tag: classify(p) };
+    cur.entries.push(entry);
+    renderTranscriptLine(entry);
+    detectTerms(p).forEach(g => { if(!seenTerms.has(g.t)) { seenTerms.set(g.t, g); } });
+  }
+  renderNotes();
+  renderTerms();
+  updateCounts();
+  saveCurrent();
+}
+
+/* ================================================================
+   六、畫面渲染
+   ================================================================ */
+function renderTranscriptLine(entry){
+  $('trEmpty') && $('trEmpty').remove();
+  const div = document.createElement('div');
+  div.className = 'tr-line';
+  div.innerHTML = `<span class="tr-time">${fmtClock(new Date(entry.ts))}</span><span class="tr-text">${highlight(entry.t)}</span>`;
+  $('trBody').appendChild(div);
+  $('trBody').scrollTop = $('trBody').scrollHeight;
+}
+
+function renderTranscriptAll(){
+  $('trBody').innerHTML = '';
+  if (!cur || !cur.entries.length){
+    $('trBody').innerHTML = '<div class="tr-empty" id="trEmpty">還沒有內容。<br>開始收音，或在下方「手動輸入」貼上文字。</div>';
+    return;
+  }
+  cur.entries.forEach(renderTranscriptLine);
+}
+
+// 筆記：每 10 分鐘一個時間區塊，只收有分類的句子
+function noteBlocks(){
+  const blocks = [];
+  if (!cur) return blocks;
+  let curBlock = null;
+  for (const e of cur.entries){
+    if (!e.tag) continue;
+    const slot = Math.floor(e.ts / 600000);
+    if (!curBlock || curBlock.slot !== slot){
+      curBlock = { slot, from: e.ts, items: [] };
+      blocks.push(curBlock);
+    }
+    curBlock.items.push(e);
+  }
+  return blocks;
+}
+
+function renderNotes(){
+  const blocks = noteBlocks();
+  const body = $('ntBody');
+  const aiOut = $('aiOut');
+  body.querySelectorAll('.nt-block, .tr-empty').forEach(el => el.remove());
+  if (!blocks.length && !(cur && cur.aiMd)){
+    const d = document.createElement('div');
+    d.className = 'tr-empty';
+    d.innerHTML = '聽到指令、定義、步驟、提醒時，<br>會自動抓進來變成條列筆記。';
+    body.insertBefore(d, aiOut);
+    return;
+  }
+  for (const b of blocks){
+    const div = document.createElement('div');
+    div.className = 'nt-block';
+    const t0 = new Date(b.from);
+    div.innerHTML = `<div class="nt-blockhead">${fmtClock(t0)} 左右</div>` +
+      b.items.map(e => {
+        const tag = TAGS[e.tag];
+        return `<div class="nt-item"><span class="nt-tag" style="background:${tag.color}">${tag.label}</span><span>${highlight(e.t)}</span></div>`;
+      }).join('');
+    body.insertBefore(div, aiOut);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+function renderTerms(){
+  const cats = {};
+  for (const g of seenTerms.values()) (cats[g.cat] = cats[g.cat] || []).push(g);
+  const wrap = $('termCats');
+  if (!seenTerms.size){
+    wrap.innerHTML = '<div class="hist-empty">課堂中提到的 AutoCAD／3D列印術語會出現在這裡。</div>';
+    return;
+  }
+  wrap.innerHTML = Object.entries(cats).map(([cat, list]) =>
+    `<div class="term-cat"><div class="tc-name">${cat}</div><div class="chips">` +
+    list.map(g => `<button class="chip" data-t="${esc(g.t)}">${esc(g.t)}</button>`).join('') +
+    `</div></div>`
+  ).join('');
+  wrap.querySelectorAll('.chip').forEach(btn => {
+    btn.onclick = () => {
+      const g = seenTerms.get(btn.dataset.t);
+      const def = $('termDef');
+      wrap.querySelectorAll('.chip').forEach(c => c.classList.remove('open'));
+      if (def.classList.contains('show') && def.dataset.t === g.t){
+        def.classList.remove('show'); return;
+      }
+      btn.classList.add('open');
+      def.dataset.t = g.t;
+      def.innerHTML = `<b>${esc(g.t)}</b><span class="cat">${esc(g.cat)}</span><br>${esc(g.def)}`;
+      def.classList.add('show');
+    };
+  });
+}
+
+function updateCounts(){
+  $('trCnt').textContent = cur ? `${cur.entries.length} 句` : '';
+  const n = cur ? cur.entries.filter(e => e.tag).length : 0;
+  $('ntCnt').textContent = n ? `${n} 條` : '';
+  $('tmCnt').textContent = seenTerms.size ? `${seenTerms.size} 個` : '';
+}
+
+/* ================================================================
+   七、語音辨識（Web Speech API）
+   ================================================================ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $('nosupport').style.display = 'block';
+
+function startRec(){
+  if (!SR){ toast('此瀏覽器不支援語音辨識，請用手動輸入'); return; }
+  ensureSession();
+  recognizer = new SR();
+  recognizer.lang = 'zh-TW';
+  recognizer.continuous = true;
+  recognizer.interimResults = true;
+  recognizer.onresult = (ev) => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++){
+      const r = ev.results[i];
+      if (r.isFinal) addUtterance(r[0].transcript, Date.now());
+      else interim += r[0].transcript;
+    }
+    $('interim').textContent = interim ? correctText(interim) : '';
+  };
+  recognizer.onerror = (ev) => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed'){
+      toast('麥克風權限被拒絕，請到網址列允許麥克風');
+      stopRec();
+    }
+    // no-speech / network 等錯誤交給 onend 自動重啟
+  };
+  recognizer.onend = () => {
+    // 連續收音會定時被瀏覽器切斷，錄音中就自動重啟
+    if (recording){ try{ recognizer.start(); }catch(e){} }
+  };
+  try{ recognizer.start(); }catch(e){ toast('無法啟動收音：' + e.message); return; }
+  recording = true;
+  $('recBtn').classList.add('live');
+  $('recStatus').innerHTML = '<b>收音中</b>…講話內容會自動變成逐字稿';
+  if (!timerIv) timerIv = setInterval(updateTimer, 1000);
+}
+
+function stopRec(){
+  recording = false;
+  if (recognizer){ try{ recognizer.stop(); }catch(e){} recognizer = null; }
+  $('recBtn').classList.remove('live');
+  $('recStatus').textContent = '已暫停。再按一下麥克風繼續收音。';
+  $('interim').textContent = '';
+}
+
+function updateTimer(){
+  if (!cur) return;
+  const s = Math.floor((Date.now() - cur.startedAt) / 1000);
+  $('recTimer').textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;
+}
+
+$('recBtn').onclick = () => recording ? stopRec() : startRec();
+
+/* ================================================================
+   八、Markdown 匯出
+   ================================================================ */
+function buildMarkdown(sess){
+  const d = new Date(sess.startedAt);
+  const lines = [];
+  lines.push(`# ${sess.title}`);
+  lines.push(`> AutoCAD AI輔助繪圖與3D列印建模班 · ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`);
+  lines.push('');
+  if (sess.aiMd){
+    lines.push('## AI 整理筆記');
+    lines.push('');
+    lines.push(sess.aiMd.trim());
+    lines.push('');
+  }
+  const tagged = sess.entries.filter(e => e.tag);
+  if (tagged.length){
+    lines.push('## 課堂重點（自動擷取）');
+    lines.push('');
+    let slot = null;
+    for (const e of tagged){
+      const s = Math.floor(e.ts / 600000);
+      if (s !== slot){ slot = s; lines.push(`### ${fmtClock(new Date(e.ts))} 左右`); }
+      lines.push(`- **[${TAGS[e.tag].label}]** ${e.t}`);
+    }
+    lines.push('');
+  }
+  // 術語表
+  const terms = new Map();
+  sess.entries.forEach(e => detectTerms(e.t).forEach(g => terms.set(g.t, g)));
+  if (terms.size){
+    lines.push('## 本堂術語');
+    lines.push('');
+    lines.push('| 術語 | 分類 | 說明 |');
+    lines.push('|---|---|---|');
+    for (const g of terms.values()) lines.push(`| ${g.t} | ${g.cat} | ${g.def} |`);
+    lines.push('');
+  }
+  lines.push('## 完整逐字稿');
+  lines.push('');
+  for (const e of sess.entries) lines.push(`- ${fmtClock(new Date(e.ts))} ${e.t}`);
+  return lines.join('\n');
+}
+
+function download(name, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/markdown;charset=utf-8'}));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ================================================================
+   九、AI 整理（Claude API，選配）
+   ================================================================ */
+const AI_SYSTEM = `你是「AutoCAD AI輔助繪圖與3D列印建模班」的助教，非常熟悉 AutoCAD 2D/3D 指令、Autodesk AI 輔助功能（智慧圖塊、標記輔助、巨集建議、AutoLISP）、以及 FDM/光固化 3D 列印與切片參數。
+
+使用者會給你一段課堂錄音的逐字稿（語音辨識產生，可能有錯字）。請整理成一份可以直接複習的課堂筆記，規則：
+1. 用你的領域知識校正辨識錯的專有名詞（例如把「土層」修成「圖層」、「G扣」修成「G-code」），指令一律寫成「中文（英文指令）」格式，例如「擠出（EXTRUDE）」。
+2. 依授課主題分節（不用照時間流水帳），用條列呈現：操作步驟用有序清單、觀念與提醒用無序清單。
+3. 老師強調的注意事項、常見錯誤、作業與考試相關內容，獨立整理成「⚠ 重點提醒」和「📝 作業/待辦」兩節（沒有就省略）。
+4. 有講到參數數值（層高、填充率、溫度、公差、半徑等）務必保留精確數字，整理成表格。
+5. 只根據逐字稿內容整理，不要腦補課堂沒講的內容；聽不清或矛盾的地方標「(?)」。
+6. 全部用臺灣慣用的繁體中文與術語，輸出 Markdown（不要用一級標題 #，從 ## 開始）。`;
+
+async function aiSummarize(){
+  const key = localStorage.getItem(LS_KEY);
+  if (!key){ openAiModal(); return; }
+  if (!cur || !cur.entries.length){ toast('還沒有逐字稿可以整理'); return; }
+  const transcript = cur.entries.map(e => `[${fmtClock(new Date(e.ts))}] ${e.t}`).join('\n');
+  const btn = $('aiBtn');
+  btn.disabled = true;
+  $('aiOut').classList.add('show');
+  $('aiMd').textContent = '整理中…（依上課長度可能要一兩分鐘）';
+  let md = '';
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 16000,
+        stream: true,
+        thinking: { type: 'adaptive' },
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: `以下是今天課堂的逐字稿：\n\n${transcript}` }],
+      }),
+    });
+    if (!res.ok){
+      let msg = `HTTP ${res.status}`;
+      try{ msg = (await res.json()).error.message; }catch(e){}
+      throw new Error(msg);
+    }
+    // 解析 SSE 串流，只取文字增量
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true){
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines){
+        if (!line.startsWith('data: ')) continue;
+        let ev; try{ ev = JSON.parse(line.slice(6)); }catch(e){ continue; }
+        if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta'){
+          md += ev.delta.text;
+          $('aiMd').innerHTML = mdToHtml(md);
+        }
+      }
+    }
+    cur.aiMd = md;
+    saveCurrent();
+    toast('AI 整理完成');
+  }catch(e){
+    $('aiMd').innerHTML = `<span style="color:var(--danger)">整理失敗：${esc(e.message)}</span>`;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+// 夠用就好的迷你 Markdown 轉 HTML（標題/清單/表格/粗體/程式碼/引言）
+function mdToHtml(md){
+  const lines = md.split('\n');
+  let html = '', inUl = false, inOl = false, inTable = false;
+  const closeLists = () => { if(inUl){html+='</ul>';inUl=false;} if(inOl){html+='</ol>';inOl=false;} };
+  const closeTable = () => { if(inTable){html+='</table>';inTable=false;} };
+  const inline = s => esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(?<![*\w])\*([^*]+)\*(?![*\w])/g, '<i>$1</i>');
+  for (const raw of lines){
+    const line = raw.replace(/\s+$/,'');
+    let m;
+    if (/^\|.*\|$/.test(line)){
+      closeLists();
+      if (/^\|[\s:|-]+\|$/.test(line)) continue; // 表頭分隔列 |---|---|
+      if (!inTable){ html += '<table>'; inTable = true; }
+      const cells = line.slice(1,-1).split('|').map(c => inline(c.trim()));
+      html += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+      continue;
+    }
+    closeTable();
+    if ((m = line.match(/^(#{1,4})\s+(.*)/))){ closeLists(); html += `<h${m[1].length+1}>${inline(m[2])}</h${m[1].length+1}>`; continue; }
+    if ((m = line.match(/^>\s?(.*)/))){ closeLists(); html += `<blockquote>${inline(m[1])}</blockquote>`; continue; }
+    if ((m = line.match(/^[-*]\s+(.*)/))){ if(inOl){html+='</ol>';inOl=false;} if(!inUl){html+='<ul>';inUl=true;} html += `<li>${inline(m[1])}</li>`; continue; }
+    if ((m = line.match(/^\d+[.)]\s+(.*)/))){ if(inUl){html+='</ul>';inUl=false;} if(!inOl){html+='<ol>';inOl=true;} html += `<li>${inline(m[1])}</li>`; continue; }
+    closeLists();
+    if (line.trim()) html += `<p>${inline(line)}</p>`;
+  }
+  closeLists(); closeTable();
+  return html;
+}
+
+function openAiModal(){
+  $('aiKeyInput').value = localStorage.getItem(LS_KEY) || '';
+  $('aiModal').classList.add('show');
+}
+$('aiKeyBtn').onclick = openAiModal;
+$('aiCancel').onclick = () => $('aiModal').classList.remove('show');
+$('aiModal').onclick = e => { if (e.target === $('aiModal')) $('aiModal').classList.remove('show'); };
+$('aiSave').onclick = () => {
+  const v = $('aiKeyInput').value.trim();
+  if (v) localStorage.setItem(LS_KEY, v); else localStorage.removeItem(LS_KEY);
+  $('aiModal').classList.remove('show');
+  toast(v ? 'API Key 已儲存在這台裝置' : 'API Key 已移除');
+};
+$('aiBtn').onclick = aiSummarize;
+
+/* ================================================================
+   十、工具列 / 場次管理
+   ================================================================ */
+$('manualAdd').onclick = () => {
+  const v = $('manualText').value.trim();
+  if (!v) return;
+  addUtterance(v, Date.now());
+  $('manualText').value = '';
+};
+
+$('sessTitle').oninput = () => { if (cur){ cur.title = $('sessTitle').value.trim() || defaultTitle(); saveCurrent(); } };
+
+$('saveBtn').onclick = () => {
+  if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
+  stopRec();
+  const list = loadSessions();
+  const i = list.findIndex(s => s.id === cur.id);
+  if (i >= 0) list[i] = cur; else list.unshift(cur);
+  saveSessions(list);
+  localStorage.removeItem(LS_CUR);
+  toast(`已儲存「${cur.title}」`);
+  cur = null;
+  resetView();
+  renderSessions();
+};
+
+$('exportBtn').onclick = () => {
+  if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
+  download(`${cur.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, buildMarkdown(cur));
+};
+
+$('copyBtn').onclick = async () => {
+  if (!cur || !cur.entries.length){ toast('這場還沒有內容'); return; }
+  try{ await navigator.clipboard.writeText(buildMarkdown(cur)); toast('筆記已複製（Markdown）'); }
+  catch(e){ toast('複製失敗，請改用匯出'); }
+};
+
+$('clearBtn').onclick = () => {
+  if (!cur || !cur.entries.length){ toast('本來就是空的'); return; }
+  if (!confirm('清除這場的逐字稿與筆記？（已儲存的歷史場次不受影響）')) return;
+  stopRec();
+  cur = null;
+  localStorage.removeItem(LS_CUR);
+  resetView();
+};
+
+function resetView(){
+  seenTerms.clear();
+  $('sessTitle').value = '';
+  $('recTimer').textContent = '00:00:00';
+  $('recStatus').textContent = '點麥克風開始收音，會即時轉逐字稿並自動整理筆記';
+  $('aiOut').classList.remove('show');
+  $('aiMd').innerHTML = '';
+  $('termDef').classList.remove('show');
+  renderTranscriptAll();
+  renderNotes();
+  renderTerms();
+  updateCounts();
+}
+
+function renderSessions(){
+  const list = loadSessions();
+  const wrap = $('sessList');
+  if (!list.length){ wrap.innerHTML = '<div class="hist-empty">還沒有存過場次。</div>'; return; }
+  wrap.innerHTML = '';
+  for (const s of list){
+    const d = new Date(s.startedAt);
+    const n = s.entries.filter(e => e.tag).length;
+    const div = document.createElement('div');
+    div.className = 'sess';
+    div.innerHTML = `
+      <span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+      <span class="mid"><span class="nm">${esc(s.title)}</span>
+        <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length} 句逐字稿 · ${n} 條筆記${s.aiMd ? ' · 含AI整理' : ''}</span></span>
+      <button class="dl" title="下載 Markdown"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
+      <button class="open" title="開啟繼續記"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="del" title="刪除"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`;
+    div.querySelector('.dl').onclick = () => download(`${s.title.replace(/[\\/:*?"<>|]/g,'_')}.md`, buildMarkdown(s));
+    div.querySelector('.open').onclick = () => { openSession(s); };
+    div.querySelector('.del').onclick = () => {
+      if (!confirm(`刪除「${s.title}」？`)) return;
+      saveSessions(loadSessions().filter(x => x.id !== s.id));
+      renderSessions();
+    };
+    wrap.appendChild(div);
+  }
+}
+
+function openSession(s){
+  stopRec();
+  cur = s;
+  seenTerms.clear();
+  cur.entries.forEach(e => detectTerms(e.t).forEach(g => seenTerms.set(g.t, g)));
+  $('sessTitle').value = s.title;
+  renderTranscriptAll();
+  renderNotes();
+  renderTerms();
+  updateCounts();
+  if (s.aiMd){ $('aiOut').classList.add('show'); $('aiMd').innerHTML = mdToHtml(s.aiMd); }
+  else { $('aiOut').classList.remove('show'); $('aiMd').innerHTML = ''; }
+  updateTimer();
+  if (!timerIv) timerIv = setInterval(updateTimer, 1000);
+  window.scrollTo({top:0, behavior:'smooth'});
+  toast(`已開啟「${s.title}」，可繼續收音`);
+}
+
+let toastT;
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ================================================================
+   十一、啟動：復原未儲存場次 + 註冊 Service Worker
+   ================================================================ */
+(function init(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(LS_CUR));
+    if (saved && saved.entries && saved.entries.length){
+      cur = saved;
+      $('sessTitle').value = cur.title;
+      cur.entries.forEach(e => detectTerms(e.t).forEach(g => seenTerms.set(g.t, g)));
+      renderTranscriptAll();
+      renderNotes();
+      renderTerms();
+      updateCounts();
+      if (cur.aiMd){ $('aiOut').classList.add('show'); $('aiMd').innerHTML = mdToHtml(cur.aiMd); }
+      updateTimer();
+      timerIv = setInterval(updateTimer, 1000);
+      toast('已復原上次未儲存的場次');
+    }
+  }catch(e){}
+  renderSessions();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+})();
+
+// 給自動化測試用：window.__classnote.add('...') 可直接注入語句
+window.__classnote = { add: addUtterance, glossary: GLOSSARY, correct: correctText, classify };
+</script>
+</body>
+</html>
