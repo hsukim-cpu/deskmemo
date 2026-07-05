@@ -93,6 +93,18 @@
     align-items:center; justify-content:center; z-index:100; padding:14px;}
   .lightbox.show{display:flex;}
   .lightbox img{max-width:96vw; max-height:92vh; border-radius:8px;}
+  .tr-time[data-ts]{cursor:pointer;}
+  .tr-time[data-ts]:hover{color:var(--accent); text-decoration:underline;}
+
+  /* 錄音回放列 */
+  .player{position:fixed; left:14px; bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:70;
+    background:var(--card); border:1px solid var(--line); border-radius:13px; padding:8px 10px;
+    box-shadow:var(--shadow); display:none; align-items:center; gap:9px; max-width:92vw;}
+  .player.show{display:flex;}
+  .player .plabel{font-size:12px; color:var(--sub); letter-spacing:1px; white-space:nowrap;}
+  .player audio{height:36px; max-width:56vw;}
+  .player button{border:none; background:none; color:var(--faint); display:flex; padding:5px; cursor:pointer;}
+  .player button:hover{color:var(--danger);}
 
   /* 筆記 */
   .nt-block{margin-bottom:16px;}
@@ -290,6 +302,15 @@
 </div>
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" alt="照片放大"></div>
+
+<!-- 錄音回放列 -->
+<div class="player" id="player">
+  <span class="plabel" id="playerLabel"></span>
+  <audio id="playerAudio" controls preload="auto"></audio>
+  <button id="playerClose" aria-label="關閉回放">
+    <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -553,41 +574,51 @@ function saveCurrent(){ try{ localStorage.setItem(LS_CUR, JSON.stringify(cur)); 
 function loadSessions(){ try{ return JSON.parse(localStorage.getItem(LS_SESS)) || []; }catch(e){ return []; } }
 function saveSessions(list){ try{ localStorage.setItem(LS_SESS, JSON.stringify(list)); }catch(e){} }
 
-/* ---------- 照片存 IndexedDB（localStorage 放不下圖片） ---------- */
+/* ---------- 照片、錄音存 IndexedDB（localStorage 放不下） ---------- */
 let idbP = null;
 function idbOpen(){
   if (idbP) return idbP;
   idbP = new Promise((res, rej) => {
-    const r = indexedDB.open('classnote', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('imgs');
+    const r = indexedDB.open('classnote', 2);   // v2: 新增錄音 aud store
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.contains('imgs')) db.createObjectStore('imgs');
+      if (!db.objectStoreNames.contains('aud')) db.createObjectStore('aud');
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
   return idbP;
 }
-async function imgPut(id, dataUrl){
+async function kvPut(store, id, val){
   const db = await idbOpen();
   return new Promise((res, rej) => {
-    const t = db.transaction('imgs', 'readwrite');
-    t.objectStore('imgs').put(dataUrl, id);
+    const t = db.transaction(store, 'readwrite');
+    t.objectStore(store).put(val, id);
     t.oncomplete = res; t.onerror = () => rej(t.error);
   });
 }
-async function imgGet(id){
+async function kvGet(store, id){
   const db = await idbOpen();
   return new Promise((res, rej) => {
-    const q = db.transaction('imgs').objectStore('imgs').get(id);
+    const q = db.transaction(store).objectStore(store).get(id);
     q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error);
   });
 }
-async function imgDel(id){
+async function kvDel(store, id){
   const db = await idbOpen();
   return new Promise((res) => {
-    const t = db.transaction('imgs', 'readwrite');
-    t.objectStore('imgs').delete(id);
+    const t = db.transaction(store, 'readwrite');
+    t.objectStore(store).delete(id);
     t.oncomplete = res; t.onerror = res;
   });
 }
+const imgPut = (id, v) => kvPut('imgs', id, v);
+const imgGet = (id) => kvGet('imgs', id);
+const imgDel = (id) => kvDel('imgs', id);
+const audPut = (id, v) => kvPut('aud', id, v);
+const audGet = (id) => kvGet('aud', id);
+const audDel = (id) => kvDel('aud', id);
 // 把容器裡 <img data-imgid> 的圖從 IndexedDB 補上
 function hydrateImages(root){
   root.querySelectorAll('img[data-imgid]:not([src])').forEach(img => {
@@ -656,7 +687,7 @@ function renderTranscriptLine(entry){
   const body = entry.imgId
     ? `<img class="snap" data-imgid="${entry.imgId}" alt="上課照片">`
     : highlight(entry.t);
-  div.innerHTML = `<span class="tr-time">${fmtClock(new Date(entry.ts))}</span><span class="tr-text">${body}</span>`;
+  div.innerHTML = `<span class="tr-time" data-ts="${entry.ts}" title="點一下回放這段錄音">${fmtClock(new Date(entry.ts))}</span><span class="tr-text">${body}</span>`;
   $('trBody').appendChild(div);
   hydrateImages(div);
   $('trBody').scrollTop = $('trBody').scrollHeight;
@@ -770,9 +801,86 @@ function updateCounts(){
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SR) $('nosupport').style.display = 'block';
 
-function startRec(){
-  if (!SR){ toast('此瀏覽器不支援語音辨識，請用手動輸入'); return; }
+/* ---------- 整堂錄音備份（MediaRecorder，10 分鐘一段存 IndexedDB） ---------- */
+let recorder = null, recStream = null, segTimer = null, segChunks = [];
+const SEG_MS = 10 * 60 * 1000;
+
+async function startAudioBackup(){
+  if (!window.MediaRecorder || !navigator.mediaDevices){ return; }
+  try{
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }catch(e){ toast('錄音備份無法啟動（麥克風權限被拒）'); return; }
+  newSegment();
+  segTimer = setInterval(() => { if (recorder && recorder.state !== 'inactive') recorder.stop(); newSegment(); }, SEG_MS);
+  if (!localStorage.getItem('classnote.playhint')){
+    localStorage.setItem('classnote.playhint', '1');
+    toast('錄音備份中：之後點逐字稿的「時間」可回放原話');
+  }
+}
+
+function newSegment(){
+  if (!recStream) return;
+  segChunks = [];
   ensureSession();
+  const seg = { id: newId(), start: Date.now(), end: null };
+  (cur.audio = cur.audio || []).push(seg);
+  const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+  recorder = new MediaRecorder(recStream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 });
+  const myChunks = segChunks;
+  recorder.ondataavailable = (e) => { if (e.data && e.data.size) myChunks.push(e.data); };
+  recorder.onstop = () => {
+    seg.end = Date.now();
+    const blob = new Blob(myChunks, { type: recorder && recorder.mimeType || 'audio/webm' });
+    if (blob.size) audPut(seg.id, blob).catch(() => toast('錄音存檔失敗（儲存空間不足？）'));
+    saveCurrent();
+  };
+  recorder.start(1000);
+  saveCurrent();
+}
+
+function stopAudioBackup(){
+  clearInterval(segTimer); segTimer = null;
+  if (recorder && recorder.state !== 'inactive') recorder.stop();
+  recorder = null;
+  if (recStream){ recStream.getTracks().forEach(t => t.stop()); recStream = null; }
+}
+
+// 點逐字稿的時間 → 找到涵蓋那個時刻的錄音段，從前 3 秒開始放
+function playAt(ts){
+  const segs = (cur && cur.audio) || [];
+  const seg = segs.find(s => ts >= s.start && ts <= (s.end || Date.now()));
+  if (!seg){ toast('這個時間點沒有錄音'); return; }
+  audGet(seg.id).then(blob => {
+    if (!blob){ toast('這段錄音還在寫入中，稍等或先暫停收音'); return; }
+    const a = $('playerAudio');
+    if (a.src) URL.revokeObjectURL(a.src);
+    a.src = URL.createObjectURL(blob);
+    const off = Math.max(0, (ts - seg.start) / 1000 - 3);
+    a.onloadedmetadata = () => {
+      if (a.duration === Infinity){
+        // MediaRecorder 的 webm 沒寫 duration，先跳到超大值逼它算出真實長度再定位
+        a.currentTime = 1e7;
+        a.ondurationchange = () => {
+          if (a.duration !== Infinity){ a.ondurationchange = null; a.currentTime = off; a.play(); }
+        };
+      } else { a.currentTime = off; a.play(); }
+    };
+    $('playerLabel').textContent = `回放 ${fmtClock(new Date(ts))}`;
+    $('player').classList.add('show');
+  });
+}
+
+function startRec(){
+  ensureSession();
+  startAudioBackup();
+  if (!SR){
+    // 不支援即時辨識的瀏覽器：至少把課錄下來
+    recording = true;
+    $('recBtn').classList.add('live');
+    $('recStatus').innerHTML = '<b>錄音備份中</b>（此瀏覽器無法即時轉逐字稿，可用手動輸入補文字）';
+    if (!timerIv) timerIv = setInterval(updateTimer, 1000);
+    return;
+  }
   recognizer = new SR();
   recognizer.lang = 'zh-TW';
   recognizer.continuous = true;
@@ -800,13 +908,14 @@ function startRec(){
   try{ recognizer.start(); }catch(e){ toast('無法啟動收音：' + e.message); return; }
   recording = true;
   $('recBtn').classList.add('live');
-  $('recStatus').innerHTML = '<b>收音中</b>…講話內容會自動變成逐字稿';
+  $('recStatus').innerHTML = '<b>收音中</b>（含錄音備份）…講話內容會自動變成逐字稿';
   if (!timerIv) timerIv = setInterval(updateTimer, 1000);
 }
 
 function stopRec(){
   recording = false;
   if (recognizer){ try{ recognizer.stop(); }catch(e){} recognizer = null; }
+  stopAudioBackup();
   $('recBtn').classList.remove('live');
   $('recStatus').textContent = '已暫停。再按一下麥克風繼續收音。';
   $('interim').textContent = '';
@@ -832,8 +941,17 @@ document.addEventListener('click', (e) => {
     $('lightboxImg').src = e.target.src;
     $('lightbox').classList.add('show');
   }
+  if (e.target.classList && e.target.classList.contains('tr-time') && e.target.dataset.ts){
+    playAt(+e.target.dataset.ts);
+  }
 });
 $('lightbox').onclick = () => $('lightbox').classList.remove('show');
+$('playerClose').onclick = () => {
+  const a = $('playerAudio');
+  a.pause();
+  if (a.src){ URL.revokeObjectURL(a.src); a.removeAttribute('src'); }
+  $('player').classList.remove('show');
+};
 
 /* ================================================================
    八、Markdown 匯出
@@ -1060,7 +1178,10 @@ $('copyBtn').onclick = async () => {
   catch(e){ toast('複製失敗，請改用匯出'); }
 };
 
-const deleteSessionImages = (sess) => (sess.entries || []).forEach(e => { if (e.imgId) imgDel(e.imgId); });
+const deleteSessionImages = (sess) => {
+  (sess.entries || []).forEach(e => { if (e.imgId) imgDel(e.imgId); });
+  (sess.audio || []).forEach(a => audDel(a.id));
+};
 
 $('clearBtn').onclick = () => {
   if (!cur || !cur.entries.length){ toast('本來就是空的'); return; }
@@ -1100,7 +1221,7 @@ function renderSessions(){
     div.innerHTML = `
       <span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
       <span class="mid"><span class="nm">${esc(s.title)}</span>
-        <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length - photos} 句 · ${n} 條筆記${photos ? ` · ${photos} 張照片` : ''}${s.aiMd ? ' · 含AI整理' : ''}</span></span>
+        <span class="meta">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} · ${s.entries.length - photos} 句 · ${n} 條筆記${photos ? ` · ${photos} 張照片` : ''}${(s.audio||[]).length ? ' · 含錄音' : ''}${s.aiMd ? ' · 含AI整理' : ''}</span></span>
       <button class="dl" title="下載 Markdown"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
       <button class="open" title="開啟繼續記"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button class="del" title="刪除"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`;
