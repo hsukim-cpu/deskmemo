@@ -27,6 +27,7 @@ let tray = null
 let allowQuit = false
 let warnAfterResume = false
 let warningWin = null
+let sessionEndHandled = false   // Windows 關機 session-end 可能每個視窗各發一次，只處理一次
 
 const dataFile = () => path.join(app.getPath('userData'), 'notes.json')
 
@@ -115,6 +116,7 @@ function createNoteWindow(note) {
   win.on('moved', remember)
   win.on('resized', remember)
   win.on('closed', () => noteWindows.delete(note.id))
+  win.on('session-end', handleSessionEnd)  // Windows 關機/重開/登出（唯一收得到的關機訊號）
 
   noteWindows.set(note.id, win)
   return win
@@ -321,6 +323,15 @@ ipcMain.on('alarm-snooze', (e, id, key) => {
 })
 
 // ---------- 警示邏輯 ----------
+// Windows 收不到 powerMonitor 'shutdown'，唯一能收到的關機/重開/登出訊號是 BrowserWindow 'session-end'。
+// 系統不給 App 攔關機，所以這裡只嗶一聲＋盡量閃一下提示（可能一閃就被系統關掉），不阻擋關機。
+function handleSessionEnd() {
+  if (sessionEndHandled || allowQuit || !hasPending()) return
+  sessionEndHandled = true
+  shell.beep()
+  showWarning('shutdown')
+}
+
 function setupPowerWatch() {
   // 闔上筆電 / 睡眠：系統不給擋，闔上瞬間嗶一聲，醒來跳警示
   powerMonitor.on('suspend', () => {
