@@ -782,7 +782,6 @@ function budgetState(ym){
   const pct = cap>0 ? spent/cap*100 : (spent>0?100:0);
   return {b:b, ym:ym, avail:avail, cap:cap, capped:capped,
     capName:(capped?'支出限額':'可運用金額'),
-    keep:Math.max(0, avail-cap),          /* 限額之外、這個月留著存的 */
     spent:spent, left:cap-spent, pct:pct,
     over:(cap>0 ? spent>cap : spent>0),
     near:(cap>0 && spent<=cap && pct>=b.warnAt)};
@@ -802,9 +801,7 @@ function renderBudget(){
   const showCap = st.capped && st.b.limitOn;
   const alert = st.b.limitOn && (st.over || st.near);
   const w = st.cap>0 ? Math.min(100, st.spent/st.cap*100) : 100;
-  const note = showCap
-    ? '可運用 '+fmtN(st.avail)+(st.keep>0 ? ' · 限額外留著存 '+fmt(st.keep) : '')
-    : '';
+  const note = showCap ? '可運用 '+fmtN(st.avail) : '';
   budgetCard.className='budget'+(alert?' alert':'');
   budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>'+(showCap?'本月支出限額':'本月可運用')+'</span></div>'+
     '<div class="bval">'+fmtN(showCap?st.cap:st.avail)+'</div>'+
@@ -908,8 +905,7 @@ function renderCalc(){
   bvLimitAmt.placeholder = av>0 ? String(av) : '0';
   const note=document.getElementById('bvLimitNote'); const lim=bvDraft.limit;
   if(lim<=0){ note.className='bv-note'; note.textContent='不填就用可運用金額 '+fmtN(av)+' 當上限。'; }
-  else if(lim<av){ note.className='bv-note hi'; note.textContent='這個月最多花 '+fmt(lim)+'，剩下的 '+fmt(av-lim)+' 留著存。'; }
-  else if(lim===av){ note.className='bv-note'; note.textContent='跟可運用金額一樣，沒有另外留。'; }
+  else if(lim<=av){ note.className='bv-note hi'; note.textContent='這個月日常最多花 '+fmt(lim)+'。必要支出已經在上面的分配扣掉了。'; }
   else { note.className='bv-note'; note.textContent='比可運用金額 '+fmtN(av)+' 多 '+fmt(lim-av)+'，等於會動到分配好的錢。'; }
 }
 bvIncome.addEventListener('input', renderCalc);
