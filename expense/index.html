@@ -617,13 +617,17 @@ function render(){
   document.getElementById('sumMonth').textContent=fmt(month);
   document.getElementById('monLabel').textContent=(now.getMonth()+1)+'月';
 
-  // 明細
+  // 明細（只列當月，更早的紀錄從月曆查）
   const vl=document.getElementById('viewList'); vl.innerHTML='';
-  if(!entries.length){
-    vl.innerHTML='<div class="empty"><div class="big">'+SVG.leaf+'</div>還沒有任何紀錄<br>點上面的麥克風，講出第一筆花費吧</div>';
+  const mine=entries.filter(e=>sameMonth(e.ts,now));
+  if(!mine.length){
+    vl.innerHTML='<div class="empty"><div class="big">'+SVG.leaf+'</div>'+
+      (entries.length
+        ? (now.getMonth()+1)+'月還沒有紀錄<br>更早的紀錄點上面的「'+(now.getMonth()+1)+'月」看月曆'
+        : '還沒有任何紀錄<br>點上面的麥克風，講出第一筆花費吧')+'</div>';
   }else{
     const byDay={};
-    entries.forEach(e=>{ const k=todayStr(new Date(e.ts)); (byDay[k]=byDay[k]||[]).push(e); });
+    mine.forEach(e=>{ const k=todayStr(new Date(e.ts)); (byDay[k]=byDay[k]||[]).push(e); });
     Object.keys(byDay).sort().reverse().forEach(day=>{
       const list=byDay[day]; const sum=list.reduce((a,e)=>a+e.amount,0);
       const g=document.createElement('div'); g.className='daygroup';
@@ -701,7 +705,7 @@ function renderMonth(){
   const dayTot={}; let mTot=0;
   entries.forEach(e=>{ const d=new Date(e.ts);
     if(d.getFullYear()===mvYear && d.getMonth()===mvMonth){ const k=todayStr(d); dayTot[k]=(dayTot[k]||0)+e.amount; mTot+=e.amount; } });
-  mvTotal.textContent='本月合計 '+fmt(mTot);
+  mvTotal.textContent=(mvMonth+1)+'月合計 '+fmt(mTot);
   const first=new Date(mvYear,mvMonth,1).getDay();
   const days=new Date(mvYear,mvMonth+1,0).getDate();
   const todayK=todayStr(new Date());
