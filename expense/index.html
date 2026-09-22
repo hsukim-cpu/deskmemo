@@ -121,6 +121,18 @@
   .statrow .bar i{display:block; height:100%; background:var(--accent); border-radius:4px; opacity:.8;}
   .statrow .vv{font-size:13px; color:var(--sub); width:98px; text-align:right; font-variant-numeric:tabular-nums; flex:0 0 auto;}
 
+  /* 存款分頁 */
+  .savetop{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:18px;}
+  .savetop .k{font-size:11px; color:var(--sub); letter-spacing:2px;}
+  .savetop .v{font-size:28px; font-weight:600; margin-top:8px; letter-spacing:.5px;
+    font-variant-numeric:tabular-nums; color:var(--txt);}
+  .savetop .v.neg{color:var(--danger);}
+  .savetop .note{font-size:12px; color:var(--faint); letter-spacing:1px; margin-top:10px; line-height:1.7;}
+  .savelist{margin-top:9px;}
+  .item .amt.neg{color:var(--danger);}
+  .badge{font-size:10px; color:var(--accent); background:var(--accentSoft); border-radius:5px;
+    padding:2px 6px; letter-spacing:1px; margin-left:7px;}
+
   .toast{position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 26px); transform:translateX(-50%) translateY(8px);
     background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:999px; font-size:14px; letter-spacing:1px;
     opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:50;}
@@ -296,10 +308,12 @@
   <div class="tabs">
     <div class="tab sel" data-tab="list">明細</div>
     <div class="tab" data-tab="stat">本月分類</div>
+    <div class="tab" data-tab="save">存款</div>
   </div>
 
   <div id="viewList"></div>
   <div id="viewStat" style="display:none"></div>
+  <div id="viewSave" style="display:none"></div>
 </div>
 
 <!-- 月曆畫面 -->
@@ -390,7 +404,8 @@ const SVG = {
   leaf:'<svg class="i" viewBox="0 0 24 24"><path d="M5 19c0-8 6-13 14-13 0 8-5 14-13 14"/><path d="M5 19c2-4 5-6 9-7"/></svg>',
   wallet:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.8" r="1.2"/></svg>',
   plus:'<svg class="i" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></svg>',
-  chev:'<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'
+  chev:'<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  bank:'<svg class="i" viewBox="0 0 24 24"><path d="M3 9.5L12 4.5l9 5"/><path d="M5 9.5v8.5M9.7 9.5v8.5M14.3 9.5v8.5M19 9.5v8.5"/><path d="M3 19.5h18"/></svg>'
 };
 
 /* ============ 分類設定 ============ */
@@ -646,15 +661,17 @@ function render(){
   }
 
   renderBudget();
+  renderSave();
 }
 
 /* tabs */
+const TAB_VIEWS={list:'viewList', stat:'viewStat', save:'viewSave'};
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick=()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('sel')); t.classList.add('sel');
-    const isList=t.dataset.tab==='list';
-    document.getElementById('viewList').style.display=isList?'':'none';
-    document.getElementById('viewStat').style.display=isList?'none':'';
+    Object.keys(TAB_VIEWS).forEach(k=>{
+      document.getElementById(TAB_VIEWS[k]).style.display=(k===t.dataset.tab)?'':'none';
+    });
   };
 });
 
@@ -785,6 +802,62 @@ function budgetState(ym){
     spent:spent, left:cap-spent, pct:pct,
     over:(cap>0 ? spent>cap : spent>0),
     near:(cap>0 && spent<=cap && pct>=b.warnAt)};
+}
+
+/* ============ 存入銀行：儲蓄分配 ＋ 可運用沒花完的 ============ */
+/* 分配名稱含「儲蓄」或「存」的算存款（儲蓄／定存／存款…） */
+const SAVE_RE=/儲蓄|存/;
+function savePartsOf(b){
+  const hit=b.allocs.filter(a=>SAVE_RE.test(a.name) && (Number(a.amount)||0)>0);
+  return {amount:hit.reduce((s,a)=>s+(Number(a.amount)||0),0),
+          names:hit.map(a=>a.name.trim()||'儲蓄')};
+}
+/* 有預算設定（填了收入）的月份才算得出來；沒設定的月份跳過，不硬湊 */
+function depositOf(ym){
+  const b=budgetOf(ym);
+  if(!b || b.income<=0) return null;
+  const avail=b.income-allocTotal(b);
+  const spent=monthSpent(ym);
+  const sp=savePartsOf(b);
+  const left=avail-spent;
+  return {ym:ym, avail:avail, spent:spent, save:sp.amount, saveNames:sp.names,
+    left:left, deposit:sp.amount+left};
+}
+/* 有預算設定或有記帳的月份，不含未來月 */
+function monthKeys(){
+  const set={}, cur=ymStr();
+  Object.keys(budgetData.months).forEach(k=>{ set[k]=1; });
+  entries.forEach(e=>{ set[ymStr(new Date(e.ts))]=1; });
+  return Object.keys(set).filter(k=>k<=cur).sort().reverse();
+}
+function renderSave(){
+  const vs=document.getElementById('viewSave'); vs.innerHTML='';
+  const rows=monthKeys().map(depositOf).filter(r=>!!r);
+  if(!rows.length){
+    vs.innerHTML='<div class="empty"><div class="big">'+SVG.bank+'</div>還沒有可以算的月份<br>先在上面的預算卡填本月收入與分配';
+    return;
+  }
+  const total=rows.reduce((s,r)=>s+r.deposit,0);
+  const cur=ymStr();
+  const top=document.createElement('div'); top.className='savetop';
+  top.innerHTML='<div class="k">累積存入銀行</div>'+
+    '<div class="v'+(total<0?' neg':'')+'">'+fmtN(total)+'</div>'+
+    '<div class="note">名稱含「儲蓄」或「存」的分配 ＋ 可運用沒花完的，'+rows.length+' 個月加總。</div>';
+  vs.appendChild(top);
+  const list=document.createElement('div'); list.className='savelist';
+  rows.forEach(r=>{
+    const p=r.ym.split('-');
+    const leftTxt = r.left>=0 ? '沒花完 '+fmt(r.left) : '超支 '+fmt(-r.left);
+    const detail = r.save>0 ? r.saveNames.join('＋')+' '+fmt(r.save)+'，'+leftTxt : leftTxt;
+    const row=document.createElement('div'); row.className='item';
+    row.innerHTML='<div class="ico">'+SVG.bank+'</div>'+
+      '<div class="mid"><div class="nm">'+p[0]+'年'+Number(p[1])+'月'+
+        (r.ym===cur?'<span class="badge">進行中</span>':'')+'</div>'+
+        '<div class="ct">'+detail+'</div></div>'+
+      '<div class="amt'+(r.deposit<0?' neg':'')+'">'+fmtN(r.deposit)+'</div>';
+    list.appendChild(row);
+  });
+  vs.appendChild(list);
 }
 
 /* ============ 首頁預算卡 ============ */
