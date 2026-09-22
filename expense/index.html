@@ -134,6 +134,85 @@
   .mvchev{position:absolute; top:14px; right:12px; color:var(--faint); display:flex;}
   .mvchev .i{width:18px; height:18px;}
 
+  /* 預算卡（首頁） */
+  .budget{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px;
+    margin:0 0 20px; position:relative; cursor:pointer;}
+  .budget:active{background:var(--soft);}
+  .budget .bhead{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--sub); letter-spacing:2px;}
+  .budget .bhead .i{width:15px; height:15px;}
+  .budget .bval{font-size:25px; font-weight:600; margin-top:8px; letter-spacing:.5px;
+    font-variant-numeric:tabular-nums; color:var(--txt);}
+  .budget .bbar{height:7px; background:var(--soft); border-radius:4px; overflow:hidden; margin:13px 0 10px;}
+  .budget .bbar i{display:block; height:100%; background:var(--accent); border-radius:4px; opacity:.8; transition:width .25s;}
+  .budget .bfoot{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--sub);
+    letter-spacing:1px; font-variant-numeric:tabular-nums;}
+  .budget .bfoot b{font-weight:600; color:var(--txt);}
+  .budget .hint{font-size:13.5px; color:var(--sub); letter-spacing:1px; margin-top:8px; line-height:1.7; padding-right:14px;}
+  .budget.alert .bval,.budget.alert .bfoot b{color:var(--danger);}
+  .budget.alert .bbar i{background:var(--danger); opacity:1;}
+  .budget .bchev{position:absolute; top:14px; right:12px; color:var(--faint); display:flex;}
+  .budget .bchev .i{width:18px; height:18px;}
+
+  /* 預算設定畫面 */
+  .budgetview{position:fixed; inset:0; z-index:70; background:var(--paper); display:none;
+    flex-direction:column; padding:env(safe-area-inset-top) 0 0;}
+  .budgetview.show{display:flex; animation:fade .2s ease;}
+  .bv-body{flex:1; overflow-y:auto; width:100%; max-width:560px; margin:0 auto;
+    padding:6px 18px calc(env(safe-area-inset-bottom) + 34px);}
+  .bv-title{font-size:19px; font-weight:600; letter-spacing:2px; padding:4px 2px 0;}
+  .bv-inherit{display:none; font-size:12.5px; color:var(--accent); letter-spacing:1px; margin:8px 2px 0; line-height:1.6;}
+  .bv-inherit.show{display:block;}
+  .bv-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:16px;}
+  .bv-card .lbl{font-size:11px; color:var(--sub); letter-spacing:2px; margin:15px 0 8px;}
+  .bv-card .lbl:first-child{margin-top:0;}
+  .bv-card input{width:100%; background:var(--soft); border:1px solid var(--line); color:var(--txt);
+    border-radius:10px; padding:12px; font-size:16px; font-family:inherit;}
+  .bv-card input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accentSoft);}
+  .bv-card .amtrow input{font-size:23px; font-weight:600; font-variant-numeric:tabular-nums;}
+  .bv-card input[type=number]{appearance:textfield; -moz-appearance:textfield;}
+  .bv-card input[type=number]::-webkit-outer-spin-button,
+  .bv-card input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .bv-card .cat{background:var(--soft);}
+  #bvWarnWrap{margin-top:15px; padding-top:14px; border-top:1px solid var(--line);}
+  #bvWarnWrap .lbl{margin-top:0;}
+  .allocrow{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
+  .allocrow .nmi{flex:1.15; min-width:0;}
+  .allocrow .ami{flex:1; min-width:0; text-align:right; font-variant-numeric:tabular-nums;}
+  .allocrow .rm{flex:0 0 auto; border:none; background:none; color:var(--faint); display:flex; padding:6px;}
+  .allocrow .rm:active{color:var(--danger);}
+  .allocnone{font-size:13px; color:var(--faint); letter-spacing:1px; line-height:1.7;}
+  .qbtn{display:flex; align-items:center; gap:5px; padding:8px 12px; border-radius:9px;
+    background:var(--soft); border:1px solid var(--line); color:var(--sub); font-size:14px;}
+  .qbtn .i{width:14px; height:14px;}
+  .qbtn:active{background:var(--tint);}
+  .bv-calc .row{display:flex; justify-content:space-between; align-items:baseline; padding:5px 0;
+    font-size:14px; color:var(--sub); letter-spacing:1px; font-variant-numeric:tabular-nums;}
+  .bv-calc .row b{color:var(--txt); font-weight:500;}
+  .bv-calc .row.big{border-top:1px solid var(--line); margin-top:9px; padding-top:13px; font-size:15px; color:var(--txt);}
+  .bv-calc .row.big b{font-size:24px; font-weight:600;}
+  .bv-calc .row.big b.neg{color:var(--danger);}
+  .switchrow{display:flex; align-items:center; gap:14px;}
+  .switchrow .sw-t{font-size:15px; letter-spacing:1px;}
+  .switchrow .sw-s{font-size:12px; color:var(--sub); letter-spacing:1px; margin-top:4px; line-height:1.6;}
+  .switch{flex:0 0 auto; margin-left:auto; width:50px; height:30px; border-radius:999px; position:relative;
+    border:1px solid var(--line); background:var(--soft); transition:background .18s, border-color .18s;}
+  .switch i{position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+    background:var(--card); box-shadow:0 1px 3px rgba(60,52,40,.18); transition:transform .18s;}
+  .switch.on{background:var(--accent); border-color:var(--accent);}
+  .switch.on i{transform:translateX(20px);}
+  .bv-save{margin-top:22px;}
+
+  /* 超支警示 toast */
+  .toast.warn{background:var(--danger);}
+  .toast.warn .undo{color:#ffdccb;}
+
+  /* 月曆畫面的預算列 */
+  .mv-budget{text-align:center; font-size:12.5px; color:var(--sub); letter-spacing:1px;
+    margin:-8px 0 14px; font-variant-numeric:tabular-nums;}
+  .mv-budget:empty{display:none;}
+  .mv-budget b{color:var(--txt); font-weight:600;}
+  .mv-budget.alert b{color:var(--danger);}
+
   /* 月曆畫面 */
   .monthview{position:fixed; inset:0; z-index:60; background:var(--paper); display:none;
     flex-direction:column; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
@@ -177,6 +256,7 @@
     <div class="sumbox"><div class="k">今天</div><div class="v" id="sumToday">$0</div></div>
     <div class="sumbox month" id="monthBox"><div class="k" id="monLabel">本月</div><div class="v" id="sumMonth">$0</div><span class="mvchev"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
   </div>
+  <div class="budget" id="budgetCard"></div>
 
   <div class="mic-card">
     <button class="bigrec" id="recBtn" aria-label="開始說話">
@@ -228,8 +308,55 @@
     <button id="mvNext" aria-label="下個月"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
   <div class="mv-total" id="mvTotal">本月合計 $0</div>
+  <div class="mv-budget" id="mvBudget"></div>
   <div class="cal" id="cal"></div>
   <div class="mv-day" id="mvDay"></div>
+</div>
+
+<!-- 本月預算設定畫面 -->
+<div class="budgetview" id="budgetView">
+  <div class="mv-top">
+    <button class="back" id="bvBack"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>返回</button>
+    <span></span>
+  </div>
+  <div class="bv-body">
+    <div class="bv-title" id="bvTitle">本月預算</div>
+    <div class="bv-inherit" id="bvInherit"></div>
+
+    <div class="bv-card">
+      <div class="lbl">本月收入</div>
+      <div class="amtrow"><span class="cur">$</span><input id="bvIncome" type="number" inputmode="numeric" step="1" placeholder="0"></div>
+    </div>
+
+    <div class="bv-card">
+      <div class="lbl">資產分配</div>
+      <div id="bvAllocs"></div>
+      <div class="lbl">快速加一筆</div>
+      <div class="cats" id="bvQuick"></div>
+    </div>
+
+    <div class="bv-card bv-calc">
+      <div class="row"><span>收入</span><b id="bvSumIncome">$0</b></div>
+      <div class="row"><span>分配總和</span><b id="bvSumAlloc">-$0</b></div>
+      <div class="row big"><span>本月可運用</span><b id="bvSumAvail">$0</b></div>
+    </div>
+
+    <div class="bv-card">
+      <div class="switchrow">
+        <div>
+          <div class="sw-t">支出限制在可運用金額內</div>
+          <div class="sw-s">開啟後，接近或超出可運用金額時會警示</div>
+        </div>
+        <button class="switch" id="bvLimit" type="button" role="switch" aria-checked="false" aria-label="支出限制在可運用金額內"><i></i></button>
+      </div>
+      <div id="bvWarnWrap">
+        <div class="lbl">用到幾成就提醒</div>
+        <div class="cats" id="bvWarn"></div>
+      </div>
+    </div>
+
+    <button class="addbtn bv-save" id="bvSave" type="button">儲存</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -251,7 +378,10 @@ const SVG = {
   health:'<svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M12 8.5v7M8.5 12h7"/></svg>',
   other:'<svg class="i" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg>',
   x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-  leaf:'<svg class="i" viewBox="0 0 24 24"><path d="M5 19c0-8 6-13 14-13 0 8-5 14-13 14"/><path d="M5 19c2-4 5-6 9-7"/></svg>'
+  leaf:'<svg class="i" viewBox="0 0 24 24"><path d="M5 19c0-8 6-13 14-13 0 8-5 14-13 14"/><path d="M5 19c2-4 5-6 9-7"/></svg>',
+  wallet:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.8" r="1.2"/></svg>',
+  plus:'<svg class="i" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></svg>',
+  chev:'<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
 /* ============ 分類設定 ============ */
@@ -389,7 +519,11 @@ function commitDirect(r){
     note:(r.note||catById(r.cat).name), raw:r.raw});
   save(entries); render();
   recLabel.textContent='已記！點麥克風記下一筆';
-  toast('已記　'+(r.note||catById(r.cat).name)+'　'+fmt(r.amount), id);
+  const msg='已記　'+(r.note||catById(r.cat).name)+'　'+fmt(r.amount);
+  const st=budgetState(ymStr());
+  if(st && st.b.limitOn && st.over){ toast(msg+'　超出可運用 '+fmt(-st.left), id, true); return; }
+  if(st && st.b.limitOn && st.near){ toast(msg+'　剩餘 '+fmt(st.left)+'（已用 '+Math.round(st.pct)+'%）', id, true); return; }
+  toast(msg, id);
 }
 
 /* ============ 解析 → 確認卡 ============ */
@@ -430,6 +564,12 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
   const amount=parseFloat(amtEl.value);
   if(isNaN(amount)||amount<=0){ amtEl.focus(); toast('金額要填數字'); return; }
   const d=edateEl.value? new Date(edateEl.value+'T12:00:00') : new Date();
+  const st=budgetState(ymStr(d));
+  if(st && st.b.limitOn){
+    const over=st.spent+amount-st.avail;
+    if(over>0 && !confirm('這筆會讓 '+ymLabel(st.ym)+' 超出可運用金額 '+fmt(over)+'。\n'+
+      '可運用 '+fmtN(st.avail)+'，已用 '+fmt(st.spent)+'。\n還是要記這一筆嗎？')) return;
+  }
   entries.unshift({id:'e'+Date.now()+Math.floor(Math.random()*1e4), ts:d.getTime(),
     amount, category:pending.cat, note:(noteEl.value.trim()||catById(pending.cat).name), raw:pending.raw});
   save(entries);
@@ -495,6 +635,8 @@ function render(){
       vs.appendChild(row);
     });
   }
+
+  renderBudget();
 }
 
 /* tabs */
@@ -548,6 +690,7 @@ function renderMonth(){
   }
   calEl.innerHTML=html;
   calEl.querySelectorAll('.cell[data-k]').forEach(c=>{ c.onclick=()=>{ mvSel=c.dataset.k; renderMonth(); }; });
+  renderMonthBudget();
   renderMonthDay();
 }
 function renderMonthDay(){
@@ -573,8 +716,206 @@ document.getElementById('mvBack').addEventListener('click', closeMonth);
 document.getElementById('mvPrev').addEventListener('click',()=>shiftMonth(-1));
 document.getElementById('mvNext').addEventListener('click',()=>shiftMonth(1));
 
-function toast(msg, undoId){
+/* ============ 本月預算：資料層 ============ */
+/* key 只存預算，記帳資料（saymoney.entries.v1）完全不動 */
+const BKEY='saymoney.budget.v1';
+const QUICK_ALLOC=['儲蓄','投資','保險','孝親','固定支出'];
+const WARN_OPTS=[70,80,90];
+
+function loadBudget(){
+  try{ const o=JSON.parse(localStorage.getItem(BKEY)); return (o&&o.months&&typeof o.months==='object')?o:{months:{}} }
+  catch(e){ return {months:{}} }
+}
+let budgetData=loadBudget();
+function saveBudget(){ try{ localStorage.setItem(BKEY, JSON.stringify(budgetData)); }catch(e){} }
+
+function ymStr(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function ymLabel(ym){ return Number(String(ym).split('-')[1])+'月'; }
+function fmtN(n){ return (n<0?'-':'')+fmt(Math.abs(n)); }
+
+function normB(b){
+  return {
+    income: Math.max(0, Number(b&&b.income)||0),
+    allocs: ((b&&Array.isArray(b.allocs))?b.allocs:[]).map(a=>({
+      name:String((a&&a.name)||''), amount:Math.max(0, Number(a&&a.amount)||0)})),
+    limitOn: !!(b&&b.limitOn),
+    warnAt: WARN_OPTS.indexOf(Number(b&&b.warnAt))>=0 ? Number(b.warnAt) : 80,
+    inheritedFrom: (b&&b.inheritedFrom)||null
+  };
+}
+/* 這個月沒設定 → 沿用最近一個有設定的前面月份 */
+function budgetOf(ym){
+  if(budgetData.months[ym]) return normB(budgetData.months[ym]);
+  const prev=Object.keys(budgetData.months).filter(k=>k<ym).sort().pop();
+  if(!prev) return null;
+  const b=normB(budgetData.months[prev]);
+  b.inheritedFrom=prev;
+  return b;
+}
+/* 新月份第一次開 App：把沿用的設定實際寫下來，之後改這個月不會動到上個月 */
+function carryForward(ym){
+  if(budgetData.months[ym]) return;
+  const b=budgetOf(ym);
+  if(b){ budgetData.months[ym]=b; saveBudget(); }
+}
+function allocTotal(b){ return (b?b.allocs:[]).reduce((s,a)=>s+(Number(a.amount)||0),0); }
+function monthSpent(ym){ let s=0; entries.forEach(e=>{ if(ymStr(new Date(e.ts))===ym) s+=e.amount; }); return s; }
+
+/* 某個月的預算狀態；沒填收入就當成還沒設定 */
+function budgetState(ym){
+  const b=budgetOf(ym);
+  if(!b || b.income<=0) return null;
+  const avail=b.income-allocTotal(b);
+  const spent=monthSpent(ym);
+  const pct = avail>0 ? spent/avail*100 : (spent>0?100:0);
+  return {b:b, ym:ym, avail:avail, spent:spent, left:avail-spent, pct:pct,
+    over:(avail>0 ? spent>avail : spent>0),
+    near:(avail>0 && spent<=avail && pct>=b.warnAt)};
+}
+
+/* ============ 首頁預算卡 ============ */
+const budgetCard=document.getElementById('budgetCard');
+function renderBudget(){
+  const st=budgetState(ymStr());
+  if(!st){
+    budgetCard.className='budget';
+    budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>本月預算</span></div>'+
+      '<div class="hint">還沒設定。點一下填本月收入與資產分配，就會算出這個月能花多少。</div>'+
+      '<span class="bchev">'+SVG.chev+'</span>';
+    return;
+  }
+  const alert = st.b.limitOn && (st.over || st.near);
+  const w = st.avail>0 ? Math.min(100, st.spent/st.avail*100) : 100;
+  budgetCard.className='budget'+(alert?' alert':'');
+  budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>本月可運用</span></div>'+
+    '<div class="bval">'+fmtN(st.avail)+'</div>'+
+    '<div class="bbar"><i style="width:'+w.toFixed(1)+'%"></i></div>'+
+    '<div class="bfoot"><span>已用 '+fmt(st.spent)+' · '+Math.round(st.pct)+'%</span>'+
+      (st.left>=0 ? '<span>剩餘 <b>'+fmt(st.left)+'</b></span>'
+                  : '<span>超出 <b>'+fmt(-st.left)+'</b></span>')+
+    '</div><span class="bchev">'+SVG.chev+'</span>';
+}
+
+/* ============ 預算設定畫面 ============ */
+const budgetView=document.getElementById('budgetView');
+const bvIncome=document.getElementById('bvIncome');
+let bvYM=null, bvDraft=null, bvSavedKey=null;
+
+function bvKey(b){
+  const c=normB({income:b.income, allocs:b.allocs.filter(a=>a.name.trim()||a.amount>0),
+    limitOn:b.limitOn, warnAt:b.warnAt});
+  return JSON.stringify(c);
+}
+function openBudget(){
+  bvYM=ymStr();
+  const stored=budgetOf(bvYM);
+  bvDraft=normB(stored);
+  bvSavedKey=bvKey(bvDraft);
+  document.getElementById('bvTitle').textContent=ymLabel(bvYM)+'預算';
+  const inh=document.getElementById('bvInherit');
+  if(stored && stored.inheritedFrom){
+    inh.textContent='沿用 '+ymLabel(stored.inheritedFrom)+'的設定，改完記得按儲存';
+    inh.classList.add('show');
+  } else inh.classList.remove('show');
+  bvIncome.value = bvDraft.income || '';
+  renderAllocs(); renderSwitch(); renderWarn(); renderCalc();
+  budgetView.classList.add('show');
+}
+function closeBudget(){ budgetView.classList.remove('show'); }
+
+function renderAllocs(focusIdx){
+  const box=document.getElementById('bvAllocs'); box.innerHTML='';
+  if(!bvDraft.allocs.length){
+    box.innerHTML='<div class="allocnone">還沒有分配。用下面的按鈕加一筆，剩下的就是這個月能花的。</div>';
+    return;
+  }
+  bvDraft.allocs.forEach((a,i)=>{
+    const row=document.createElement('div'); row.className='allocrow';
+    const n=document.createElement('input');
+    n.type='text'; n.className='nmi'; n.placeholder='名稱'; n.value=a.name;
+    n.addEventListener('input',()=>{ a.name=n.value; });
+    const m=document.createElement('input');
+    m.type='number'; m.className='ami'; m.inputMode='numeric'; m.step='1'; m.placeholder='0';
+    m.value = a.amount ? a.amount : '';
+    m.addEventListener('input',()=>{ a.amount=Math.max(0, Number(m.value)||0); renderCalc(); });
+    const rm=document.createElement('button');
+    rm.type='button'; rm.className='rm'; rm.setAttribute('aria-label','刪除這筆分配'); rm.innerHTML=SVG.x;
+    rm.onclick=()=>{ bvDraft.allocs.splice(i,1); renderAllocs(); renderCalc(); };
+    row.appendChild(n); row.appendChild(m); row.appendChild(rm);
+    box.appendChild(row);
+    if(focusIdx===i) setTimeout(()=>{ (a.name?m:n).focus(); },0);
+  });
+}
+function renderQuick(){
+  const q=document.getElementById('bvQuick'); q.innerHTML='';
+  QUICK_ALLOC.concat(['自訂']).forEach(name=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='qbtn'; b.innerHTML=SVG.plus+'<span>'+name+'</span>';
+    b.onclick=()=>{
+      bvDraft.allocs.push({name:(name==='自訂'?'':name), amount:0});
+      renderAllocs(bvDraft.allocs.length-1); renderCalc();
+    };
+    q.appendChild(b);
+  });
+}
+function renderSwitch(){
+  const s=document.getElementById('bvLimit');
+  s.classList.toggle('on', !!bvDraft.limitOn);
+  s.setAttribute('aria-checked', bvDraft.limitOn?'true':'false');
+  document.getElementById('bvWarnWrap').style.display = bvDraft.limitOn?'':'none';
+}
+function renderWarn(){
+  const w=document.getElementById('bvWarn'); w.innerHTML='';
+  WARN_OPTS.forEach(p=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='cat'+(bvDraft.warnAt===p?' sel':'');
+    b.innerHTML='<span>'+p+'%</span>';
+    b.onclick=()=>{ bvDraft.warnAt=p; renderWarn(); };
+    w.appendChild(b);
+  });
+}
+function renderCalc(){
+  bvDraft.income=Math.max(0, Number(bvIncome.value)||0);
+  const al=allocTotal(bvDraft), av=bvDraft.income-al;
+  document.getElementById('bvSumIncome').textContent=fmt(bvDraft.income);
+  document.getElementById('bvSumAlloc').textContent='-'+fmt(al);
+  const b=document.getElementById('bvSumAvail');
+  b.textContent=fmtN(av); b.className=(av<0?'neg':'');
+}
+bvIncome.addEventListener('input', renderCalc);
+document.getElementById('bvLimit').addEventListener('click',()=>{
+  bvDraft.limitOn=!bvDraft.limitOn; renderSwitch();
+});
+document.getElementById('bvSave').addEventListener('click',()=>{
+  renderCalc();
+  bvDraft.allocs = bvDraft.allocs
+    .filter(a=>a.name.trim() || a.amount>0)
+    .map(a=>({name:a.name.trim()||'分配', amount:a.amount}));
+  const rec=normB(bvDraft); rec.inheritedFrom=null;
+  budgetData.months[bvYM]=rec; saveBudget();
+  bvDraft=normB(rec); bvSavedKey=bvKey(bvDraft);
+  closeBudget(); render(); toast('預算已儲存');
+});
+document.getElementById('bvBack').addEventListener('click',()=>{
+  renderCalc();
+  if(bvKey(bvDraft)!==bvSavedKey && !confirm('還沒儲存，要放棄這次修改嗎？')) return;
+  closeBudget();
+});
+budgetCard.addEventListener('click', openBudget);
+
+/* 月曆畫面：該月可運用與超支狀態 */
+function renderMonthBudget(){
+  const el=document.getElementById('mvBudget');
+  const st=budgetState(mvYear+'-'+String(mvMonth+1).padStart(2,'0'));
+  if(!st){ el.className='mv-budget'; el.innerHTML=''; return; }
+  el.className='mv-budget'+((st.b.limitOn && (st.over||st.near))?' alert':'');
+  el.innerHTML='可運用 <b>'+fmtN(st.avail)+'</b> · '+
+    (st.left>=0 ? '剩餘 <b>'+fmt(st.left)+'</b>' : '超支 <b>'+fmt(-st.left)+'</b>');
+}
+
+function toast(msg, undoId, danger){
   const t=document.getElementById('toast'); t.innerHTML='';
+  t.classList.toggle('warn', !!danger);
   t.appendChild(document.createTextNode(msg));
   if(undoId){
     const u=document.createElement('span'); u.className='undo'; u.textContent='撤銷';
@@ -588,6 +929,8 @@ function toast(msg, undoId){
 /* 自動長高的輸入框 */
 rawEl.addEventListener('input',()=>{ rawEl.style.height='auto'; rawEl.style.height=rawEl.scrollHeight+'px'; });
 
+carryForward(ymStr());
+renderQuick();
 render();
 
 /* 由捷徑/小工具帶入語音文字：?say=午餐120 → 自動解析、跳出確認卡 */
