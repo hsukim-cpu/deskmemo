@@ -147,6 +147,8 @@
   .budget .bfoot{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--sub);
     letter-spacing:1px; font-variant-numeric:tabular-nums;}
   .budget .bfoot b{font-weight:600; color:var(--txt);}
+  .budget .bnote{font-size:12px; color:var(--sub); letter-spacing:1px; margin-top:9px;
+    font-variant-numeric:tabular-nums;}
   .budget .hint{font-size:13.5px; color:var(--sub); letter-spacing:1px; margin-top:8px; line-height:1.7; padding-right:14px;}
   .budget.alert .bval,.budget.alert .bfoot b{color:var(--danger);}
   .budget.alert .bbar i{background:var(--danger); opacity:1;}
@@ -175,6 +177,10 @@
   .bv-card .cat{background:var(--soft);}
   #bvWarnWrap{margin-top:15px; padding-top:14px; border-top:1px solid var(--line);}
   #bvWarnWrap .lbl{margin-top:0;}
+  #bvWarnWrap .lbl+.lbl,#bvWarnWrap .bv-note+.lbl{margin-top:15px;}
+  .bv-note{font-size:12.5px; color:var(--sub); letter-spacing:1px; margin-top:10px; line-height:1.7;
+    font-variant-numeric:tabular-nums;}
+  .bv-note.hi{color:var(--accent);}
   .allocrow{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
   .allocrow .nmi{flex:1.15; min-width:0;}
   .allocrow .ami{flex:1; min-width:0; text-align:right; font-variant-numeric:tabular-nums;}
@@ -344,12 +350,15 @@
     <div class="bv-card">
       <div class="switchrow">
         <div>
-          <div class="sw-t">支出限制在可運用金額內</div>
-          <div class="sw-s">開啟後，接近或超出可運用金額時會警示</div>
+          <div class="sw-t">限制每月支出</div>
+          <div class="sw-s">接近或超出上限時會警示；限額不填就用可運用金額</div>
         </div>
-        <button class="switch" id="bvLimit" type="button" role="switch" aria-checked="false" aria-label="支出限制在可運用金額內"><i></i></button>
+        <button class="switch" id="bvLimit" type="button" role="switch" aria-checked="false" aria-label="限制每月支出"><i></i></button>
       </div>
       <div id="bvWarnWrap">
+        <div class="lbl">每月支出限額</div>
+        <div class="amtrow"><span class="cur">$</span><input id="bvLimitAmt" type="number" inputmode="numeric" step="1" placeholder="0"></div>
+        <div class="bv-note" id="bvLimitNote"></div>
         <div class="lbl">用到幾成就提醒</div>
         <div class="cats" id="bvWarn"></div>
       </div>
@@ -521,7 +530,7 @@ function commitDirect(r){
   recLabel.textContent='已記！點麥克風記下一筆';
   const msg='已記　'+(r.note||catById(r.cat).name)+'　'+fmt(r.amount);
   const st=budgetState(ymStr());
-  if(st && st.b.limitOn && st.over){ toast(msg+'　超出可運用 '+fmt(-st.left), id, true); return; }
+  if(st && st.b.limitOn && st.over){ toast(msg+'　超出'+st.capName+' '+fmt(-st.left), id, true); return; }
   if(st && st.b.limitOn && st.near){ toast(msg+'　剩餘 '+fmt(st.left)+'（已用 '+Math.round(st.pct)+'%）', id, true); return; }
   toast(msg, id);
 }
@@ -566,9 +575,9 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
   const d=edateEl.value? new Date(edateEl.value+'T12:00:00') : new Date();
   const st=budgetState(ymStr(d));
   if(st && st.b.limitOn){
-    const over=st.spent+amount-st.avail;
-    if(over>0 && !confirm('這筆會讓 '+ymLabel(st.ym)+' 超出可運用金額 '+fmt(over)+'。\n'+
-      '可運用 '+fmtN(st.avail)+'，已用 '+fmt(st.spent)+'。\n還是要記這一筆嗎？')) return;
+    const over=st.spent+amount-st.cap;
+    if(over>0 && !confirm('這筆會讓 '+ymLabel(st.ym)+' 超出'+st.capName+' '+fmt(over)+'。\n'+
+      '上限 '+fmtN(st.cap)+'，已用 '+fmt(st.spent)+'。\n還是要記這一筆嗎？')) return;
   }
   entries.unshift({id:'e'+Date.now()+Math.floor(Math.random()*1e4), ts:d.getTime(),
     amount, category:pending.cat, note:(noteEl.value.trim()||catById(pending.cat).name), raw:pending.raw});
@@ -739,6 +748,7 @@ function normB(b){
     allocs: ((b&&Array.isArray(b.allocs))?b.allocs:[]).map(a=>({
       name:String((a&&a.name)||''), amount:Math.max(0, Number(a&&a.amount)||0)})),
     limitOn: !!(b&&b.limitOn),
+    limit: Math.max(0, Number(b&&b.limit)||0),
     warnAt: WARN_OPTS.indexOf(Number(b&&b.warnAt))>=0 ? Number(b.warnAt) : 80,
     inheritedFrom: (b&&b.inheritedFrom)||null
   };
@@ -766,11 +776,16 @@ function budgetState(ym){
   const b=budgetOf(ym);
   if(!b || b.income<=0) return null;
   const avail=b.income-allocTotal(b);
+  const capped=b.limit>0;                 /* 自己填了支出限額就用它，沒填就用可運用金額 */
+  const cap=capped?b.limit:avail;
   const spent=monthSpent(ym);
-  const pct = avail>0 ? spent/avail*100 : (spent>0?100:0);
-  return {b:b, ym:ym, avail:avail, spent:spent, left:avail-spent, pct:pct,
-    over:(avail>0 ? spent>avail : spent>0),
-    near:(avail>0 && spent<=avail && pct>=b.warnAt)};
+  const pct = cap>0 ? spent/cap*100 : (spent>0?100:0);
+  return {b:b, ym:ym, avail:avail, cap:cap, capped:capped,
+    capName:(capped?'支出限額':'可運用金額'),
+    keep:Math.max(0, avail-cap),          /* 限額之外、這個月留著存的 */
+    spent:spent, left:cap-spent, pct:pct,
+    over:(cap>0 ? spent>cap : spent>0),
+    near:(cap>0 && spent<=cap && pct>=b.warnAt)};
 }
 
 /* ============ 首頁預算卡 ============ */
@@ -780,25 +795,31 @@ function renderBudget(){
   if(!st){
     budgetCard.className='budget';
     budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>本月預算</span></div>'+
-      '<div class="hint">還沒設定。點一下填本月收入與資產分配，就會算出這個月能花多少。</div>'+
+      '<div class="hint">還沒設定。點一下填本月收入與資產分配，就會算出這個月能花多少，也可以自己設支出限額。</div>'+
       '<span class="bchev">'+SVG.chev+'</span>';
     return;
   }
+  const showCap = st.capped && st.b.limitOn;
   const alert = st.b.limitOn && (st.over || st.near);
-  const w = st.avail>0 ? Math.min(100, st.spent/st.avail*100) : 100;
+  const w = st.cap>0 ? Math.min(100, st.spent/st.cap*100) : 100;
+  const note = showCap
+    ? '可運用 '+fmtN(st.avail)+(st.keep>0 ? ' · 限額外留著存 '+fmt(st.keep) : '')
+    : '';
   budgetCard.className='budget'+(alert?' alert':'');
-  budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>本月可運用</span></div>'+
-    '<div class="bval">'+fmtN(st.avail)+'</div>'+
+  budgetCard.innerHTML='<div class="bhead">'+SVG.wallet+'<span>'+(showCap?'本月支出限額':'本月可運用')+'</span></div>'+
+    '<div class="bval">'+fmtN(showCap?st.cap:st.avail)+'</div>'+
     '<div class="bbar"><i style="width:'+w.toFixed(1)+'%"></i></div>'+
     '<div class="bfoot"><span>已用 '+fmt(st.spent)+' · '+Math.round(st.pct)+'%</span>'+
       (st.left>=0 ? '<span>剩餘 <b>'+fmt(st.left)+'</b></span>'
                   : '<span>超出 <b>'+fmt(-st.left)+'</b></span>')+
-    '</div><span class="bchev">'+SVG.chev+'</span>';
+    '</div>'+(note?'<div class="bnote">'+note+'</div>':'')+
+    '<span class="bchev">'+SVG.chev+'</span>';
 }
 
 /* ============ 預算設定畫面 ============ */
 const budgetView=document.getElementById('budgetView');
 const bvIncome=document.getElementById('bvIncome');
+const bvLimitAmt=document.getElementById('bvLimitAmt');
 let bvYM=null, bvDraft=null, bvSavedKey=null;
 
 function bvKey(b){
@@ -818,6 +839,7 @@ function openBudget(){
     inh.classList.add('show');
   } else inh.classList.remove('show');
   bvIncome.value = bvDraft.income || '';
+  bvLimitAmt.value = bvDraft.limit || '';
   renderAllocs(); renderSwitch(); renderWarn(); renderCalc();
   budgetView.classList.add('show');
 }
@@ -876,13 +898,22 @@ function renderWarn(){
 }
 function renderCalc(){
   bvDraft.income=Math.max(0, Number(bvIncome.value)||0);
+  bvDraft.limit=Math.max(0, Number(bvLimitAmt.value)||0);
   const al=allocTotal(bvDraft), av=bvDraft.income-al;
   document.getElementById('bvSumIncome').textContent=fmt(bvDraft.income);
   document.getElementById('bvSumAlloc').textContent='-'+fmt(al);
   const b=document.getElementById('bvSumAvail');
   b.textContent=fmtN(av); b.className=(av<0?'neg':'');
+  /* 限額說明：填了就算出這個月會多留多少下來存 */
+  bvLimitAmt.placeholder = av>0 ? String(av) : '0';
+  const note=document.getElementById('bvLimitNote'); const lim=bvDraft.limit;
+  if(lim<=0){ note.className='bv-note'; note.textContent='不填就用可運用金額 '+fmtN(av)+' 當上限。'; }
+  else if(lim<av){ note.className='bv-note hi'; note.textContent='這個月最多花 '+fmt(lim)+'，剩下的 '+fmt(av-lim)+' 留著存。'; }
+  else if(lim===av){ note.className='bv-note'; note.textContent='跟可運用金額一樣，沒有另外留。'; }
+  else { note.className='bv-note'; note.textContent='比可運用金額 '+fmtN(av)+' 多 '+fmt(lim-av)+'，等於會動到分配好的錢。'; }
 }
 bvIncome.addEventListener('input', renderCalc);
+bvLimitAmt.addEventListener('input', renderCalc);
 document.getElementById('bvLimit').addEventListener('click',()=>{
   bvDraft.limitOn=!bvDraft.limitOn; renderSwitch();
 });
@@ -909,8 +940,8 @@ function renderMonthBudget(){
   const st=budgetState(mvYear+'-'+String(mvMonth+1).padStart(2,'0'));
   if(!st){ el.className='mv-budget'; el.innerHTML=''; return; }
   el.className='mv-budget'+((st.b.limitOn && (st.over||st.near))?' alert':'');
-  el.innerHTML='可運用 <b>'+fmtN(st.avail)+'</b> · '+
-    (st.left>=0 ? '剩餘 <b>'+fmt(st.left)+'</b>' : '超支 <b>'+fmt(-st.left)+'</b>');
+  el.innerHTML=((st.capped && st.b.limitOn) ? '限額 <b>'+fmtN(st.cap)+'</b>' : '可運用 <b>'+fmtN(st.avail)+'</b>')+
+    ' · '+(st.left>=0 ? '剩餘 <b>'+fmt(st.left)+'</b>' : '超支 <b>'+fmt(-st.left)+'</b>');
 }
 
 function toast(msg, undoId, danger){
