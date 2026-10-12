@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>交換日記</title>
+<meta name="description" content="52 個問題，兩個人各寫一份，都寫完才一起揭曉。">
+<meta property="og:title" content="交換日記">
+<meta property="og:description" content="52 個問題，兩個人各寫一份，都寫完才一起揭曉。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Nunito:wght@500;700&display=swap">
+<style>
+/* 跟多益練習室同一套：莫蘭迪低彩度、膠囊按鈕、卡片 14px 圓角、強調色只有灰磚紅；你＝粉、對方＝薄荷 */
+:root{
+  --ink:#4A4446; --ink-2:#6E6564;
+  --floor:#E2D6C6;
+  --paper:#F6F2EC; --paper-2:#FAF7F2; --line:#E2D8CA;
+  --accent:#955A4D; --accent-soft:#E3D2CB;
+  --butter:#D8C9A0; --mint:#B4BFAE; --mint-soft:#DCE2D6; --pink:#D4B5AE; --pink-soft:#EAD9D3;
+  --tape:rgba(216,201,160,.9); --shadow:rgba(74,68,70,.22); --on-accent:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ink:#EDE5DF; --ink-2:#BDB2AC;
+    --floor:#2B2627;
+    --paper:#3A3435; --paper-2:#443D3E; --line:#554C4B;
+    --accent:#C98877; --accent-soft:#5A3F39;
+    --butter:#7C6F4E; --mint:#5F6B5A; --mint-soft:#3E4839; --pink:#7A5E58; --pink-soft:#533E3A;
+    --tape:rgba(160,146,104,.85); --shadow:rgba(0,0,0,.35); --on-accent:#2B2627;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#EDE5DF; --ink-2:#BDB2AC;
+  --floor:#2B2627;
+  --paper:#3A3435; --paper-2:#443D3E; --line:#554C4B;
+  --accent:#C98877; --accent-soft:#5A3F39;
+  --butter:#7C6F4E; --mint:#5F6B5A; --mint-soft:#3E4839; --pink:#7A5E58; --pink-soft:#533E3A;
+  --tape:rgba(160,146,104,.85); --shadow:rgba(0,0,0,.35); --on-accent:#2B2627;
+}
+*{box-sizing:border-box}
+html{background:var(--floor)}
+body{margin:0;padding-top:env(safe-area-inset-top,0px);background:var(--floor);color:var(--ink);font-family:"Huninn","Noto Sans TC",system-ui,sans-serif;line-height:1.7;-webkit-tap-highlight-color:transparent}
+h1,h2,h3,p{margin:0}
+h1,h2,h3,b{font-weight:400}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.en{font-family:"Nunito","Huninn",system-ui,sans-serif}
+.wrap{max-width:620px;margin:0 auto;padding-inline:16px;padding-block:28px 140px;display:grid;gap:18px}
+
+.sheet{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:22px 18px 18px;box-shadow:0 6px 0 var(--shadow);position:relative}
+.sheet.taped::before{content:"";position:absolute;top:-10px;left:50%;width:70px;height:20px;margin-left:-35px;background:var(--tape);transform:rotate(-3deg);border-radius:2px}
+.kicker{font-size:13px;color:var(--ink-2);letter-spacing:.04em}
+.hello h1{font-size:28px;margin:2px 0 6px;text-wrap:balance}
+.hello p{color:var(--ink-2);font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px 2px;font-size:13px;background:var(--paper)}
+.chip.soft{border-color:var(--line);color:var(--ink-2)}
+
+.who{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.person{background:var(--paper-2);border:2px solid var(--ink);border-radius:14px;padding:12px 14px;box-shadow:0 3px 0 var(--ink);min-width:0;display:grid;gap:4px}
+.person .tag{justify-self:start;border:1.5px solid var(--ink);border-radius:999px;padding:0 10px 1px;font-size:13px}
+.person.me .tag{background:var(--pink)} .person.you .tag{background:var(--mint)}
+.person input{width:100%;border:0;border-bottom:2px solid var(--ink);background:transparent;font-size:18px;padding:2px 0;border-radius:0}
+.person input::placeholder{color:var(--ink-2);opacity:.7}
+.person input:focus{outline:none;border-color:var(--accent)}
+.person input:disabled{border-color:transparent}
+.person .stat{font-size:18px;line-height:1.6}
+.person .sub{font-size:13px;color:var(--ink-2)}
+.notice{border:2px solid var(--ink);border-radius:14px;padding:12px 16px;font-size:15px;background:var(--pink-soft)}
+.notice.calm{background:var(--mint-soft)}
+
+#list{display:grid;gap:18px}
+.group{display:grid;gap:12px;margin-top:14px}
+.eyebrow{justify-self:start;border:1.5px solid var(--ink);border-radius:999px;padding:1px 12px 2px;font-size:13px;background:var(--butter)}
+.group h2{font-size:22px;line-height:1.4}
+.group .gsub{color:var(--ink-2);font-size:13px;margin-top:-8px}
+
+.q{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:16px 16px 14px;box-shadow:0 4px 0 var(--shadow);display:grid;gap:8px}
+.q .num{justify-self:start;font-family:"Nunito",system-ui,sans-serif;font-weight:700;font-size:13px;border:1.5px solid var(--ink);border-radius:999px;padding:0 10px 1px;background:var(--paper-2)}
+.q .body{display:grid;gap:10px;min-width:0}
+.q p.text{font-size:18px;line-height:1.6;text-wrap:pretty}
+.q textarea{width:100%;min-height:78px;resize:vertical;border:1.5px dashed var(--ink-2);border-radius:12px;background:var(--paper-2);font-size:16px;line-height:1.7;padding:10px 12px}
+.q textarea::placeholder{color:var(--ink-2);opacity:.7}
+.q textarea:focus{outline:none;border:2px solid var(--accent)}
+.q textarea:disabled{opacity:.6}
+
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ans.solo{grid-template-columns:1fr}
+.ans .a{border:1.5px solid var(--ink);border-radius:12px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;min-width:0}
+.ans .a b{display:block;font-size:12px;color:var(--ink-2);letter-spacing:.06em;margin-bottom:2px}
+.ans .a.me{background:var(--pink-soft)} .ans .a.you{background:var(--mint-soft)}
+.ans .empty{color:var(--ink-2)}
+
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:2px solid var(--ink);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar .in{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.prog{flex:1;min-width:140px}
+.prog .t{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.track{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:4px}
+.fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s}
+.saved{font-size:12px;color:var(--ink-2)}
+button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:999px;border:2px solid var(--ink);background:var(--accent);color:var(--on-accent);font-size:16px;cursor:pointer;box-shadow:0 3px 0 var(--ink);transition:transform .1s,box-shadow .1s;white-space:nowrap}
+button:active{transform:translateY(3px);box-shadow:0 0 0 var(--ink)}
+button.ghost{background:var(--paper)}
+button.ghost{color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+
+@media (max-width:440px){.who{grid-template-columns:1fr}.ans{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){button,.fill{transition:none}}
+
+.swap{display:grid;gap:12px}
+.swap h2{font-size:20px}
+.swap p{font-size:15px;color:var(--ink-2)}
+.code{width:100%;min-height:84px;border:1.5px dashed var(--ink-2);border-radius:12px;background:var(--paper-2);font:13px/1.5 "Nunito",ui-monospace,monospace;padding:10px 12px;resize:vertical;word-break:break-all}
+.code:focus{outline:none;border:2px solid var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.link{background:none;border:0;box-shadow:none;min-height:auto;padding:6px 2px;font-size:14px;color:var(--ink-2);text-decoration:underline;text-underline-offset:4px}
+.link:active{transform:none}
+.err{color:var(--accent);font-size:14px}
+.share{word-break:break-all;font:14px/1.5 "Nunito",ui-monospace,monospace;background:var(--paper-2);border:1.5px dashed var(--ink-2);border-radius:12px;padding:10px 12px;user-select:all}
+a.btnlink{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:999px;border:2px solid var(--ink);background:var(--mint);color:var(--ink);font-size:16px;text-decoration:none;box-shadow:0 3px 0 var(--ink)}
+a.btnlink:active{transform:translateY(3px);box-shadow:none}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="sheet taped hello">
+    <p class="kicker">52 個問題・兩個人各寫一份</p>
+    <h1>交換日記</h1>
+    <p id="lede">建立一本日記，把連結傳給對方。兩個人各自寫，對方寫完前看不到彼此的答案，都送出後會自動一起揭曉。</p>
+  </section>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section class="sheet swap" id="start" hidden>
+    <span class="chip">開始</span>
+    <h2>建立我們的交換日記</h2>
+    <p>建立後會產生一條專屬連結，只有你和收到連結的那個人能寫。</p>
+    <div class="row"><button id="create">建立日記</button></div>
+  </section>
+
+  <div class="who" id="who" hidden>
+    <div class="person me">
+      <span class="tag">你</span>
+      <input id="myname" placeholder="寫下你的暱稱" maxlength="20" autocomplete="off">
+      <div class="sub" id="mystat">填寫中</div>
+    </div>
+    <div class="person you">
+      <span class="tag">對方</span>
+      <div class="stat" id="youname">還沒加入</div>
+      <div class="sub" id="youstat">把連結傳給對方</div>
+    </div>
+  </div>
+
+  <section class="sheet swap" id="invite" hidden>
+    <span class="chip">邀請對方</span>
+    <h2>把這條連結傳給對方</h2>
+    <p>對方打開就能開始寫。這本日記只能兩個人寫，第三個人打開會被擋下。</p>
+    <div class="share" id="link"></div>
+    <div class="row"><button id="copy">複製連結</button><a class="btnlink" id="line" target="_blank" rel="noopener">用 LINE 傳</a><span class="saved" id="copied"></span></div>
+  </section>
+
+  <div id="list"></div>
+
+  <div class="row" style="justify-content:center;margin-top:8px" id="newwrap" hidden>
+    <a class="link" id="newone" href="./">再開一本新的日記</a>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="in">
+    <div class="prog">
+      <div class="t" id="progt">已回答 0 / 52</div>
+      <div class="track"><div class="fill" id="fill"></div></div>
+    </div>
+    <span class="saved" id="saved"></span>
+    <button class="ghost" id="cancel" hidden>再想想</button>
+    <button id="submit">寫完了，送出</button>
+  </div>
+</div>
+
+<script>
+/* ===== 填入你的 Supabase 設定（Project Settings → API） ===== */
+const SUPABASE_URL = "https://cywohrudgcaynvjsbmgb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5d29ocnVkZ2NheW52anNibWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjIzOTYsImV4cCI6MjA4OTQ5ODM5Nn0.eE7GyWIbI9pcoLy-XCThoL0dtSi0Q7AMyhlE8S3qB2g";
+/* ============================================================ */
+
+const QS=["你第一次看到我的時候在想什麼","你覺得我哪個地方最容易讓人心動","你第一次對我產生好感是什麼時候","你覺得我們最有默契的一次是哪次","你最喜歡我們之間哪種相處方式","你覺得我最懂你的時候是哪一次","你最喜歡我對你做什麼","你覺得我有哪些地方跟你想像的不一樣","你覺得我們個性最大的差異是什麼","如果要介紹我給朋友，你會怎麼形容",
+"你覺得自己是容易吃醋的人嗎","你希望另一半每天陪你多久","你可以接受另一半有很多異性朋友嗎","你覺得情侶需要報備到什麼程度","你會介意另一半跟前任聯絡嗎","你覺得情侶應該公開感情嗎","你會想看另一半的手機嗎","你覺得什麼行為最容易讓你吃醋","你最不能接受感情裡出現什麼問題","你覺得信任需要怎麼慢慢建立",
+"你最希望另一半理解你的哪個部分","你壓力很大的時候希望別人怎麼陪你","你難過的時候比較需要安慰還是陪伴","你不開心時最不想聽到哪句話","你習慣把心事告訴別人嗎","你最害怕自己在感情裡變成什麼樣子","你覺得自己談戀愛後最大的改變是什麼","你覺得自己最需要被理解的地方是什麼","你最想改掉自己在感情裡的一個習慣",
+"你希望我們遇到問題時怎麼溝通","你覺得道歉最重要的是態度還是行動","你認為吵架後多久適合重新談","你覺得什麼事情最值得情侶一起討論","你認為兩個人多久約會一次比較舒服","你覺得感情裡需要儀式感嗎","你最喜歡收到什麼樣的驚喜","你最喜歡哪一種約會","你心中最浪漫的一件小事是什麼",
+"如果明天突然放假，你想跟我去哪裡","如果可以一起吃一頓飯，你最想去哪一家","如果可以一起完成一個願望，你會選什麼","如果我們一起養一隻寵物，你想養什麼","如果可以一起住在任何地方，你會選哪裡","如果退休後可以自由生活，你想怎麼過","你希望我們老了以後還保留什麼習慣","你想跟我一起看著什麼事情慢慢實現",
+"你覺得我們最值得珍惜的一段回憶是哪段","如果可以重新經歷一次我們的某個時刻，你會選哪一個","你最想跟我說但一直沒有說出口的一句話","你覺得我帶給你最大的改變是什麼","你覺得我們這段感情最珍貴的地方是什麼","如果未來的我們回頭看現在，你希望會記得什麼"];
+const GROUPS=[["關於我們","心動與默契",1,10],["吃醋與信任","界線與安全感",11,20],["了解彼此","情緒與內心",21,29],["相處與約會","溝通、儀式與浪漫",30,38],["如果與未來","一起想像的日子",39,46],["回憶與心裡話","最後幾題，慢慢寫",47,52]];
+const N=QS.length;
+const $=id=>document.getElementById(id);
+const configured=!SUPABASE_URL.includes("YOUR-PROJECT")&&!SUPABASE_ANON_KEY.includes("YOUR-");
+
+async function rpc(fn,args){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn,{method:"POST",
+    headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},
+    body:JSON.stringify(args)});
+  if(!r.ok) throw new Error(fn+" "+r.status);
+  return r.status===204?null:r.json();
+}
+function getToken(){
+  try{let t=localStorage.getItem("diary-token");if(!t){t=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()+String(Math.random()).slice(2)).replace(/-/g,"");localStorage.setItem("diary-token",t)}return t}
+  catch(e){return window.__t||(window.__t=String(Math.random()).slice(2)+Date.now()+String(Math.random()).slice(2))}
+}
+const token=getToken();
+let room=new URLSearchParams(location.search).get("r");
+let me={name:"",answers:{},submitted:false}, other=null, lastKey="", confirming=false, dirty=false, saveT=null, pollT=null;
+
+function notice(msg,calm){const n=$("notice");if(!msg){n.hidden=true;return}n.textContent=msg;n.className="notice"+(calm?" calm":"");n.hidden=false}
+const count=a=>Object.values(a||{}).filter(v=>String(v).trim()).length;
+function phase(){return !me.submitted?"edit":(other&&other.submitted?"reveal":"wait")}
+function roomLink(){return location.origin+location.pathname+"?r="+room}
+
+function render(){
+  const ph=phase();
+  $("who").hidden=false;
+  if(document.activeElement!==$("myname")) $("myname").value=me.name;
+  $("myname").disabled=me.submitted;
+  $("mystat").textContent=me.submitted?"已送出":"填寫中・已答 "+count(me.answers)+" 題";
+  if(!other){$("youname").textContent="還沒加入";$("youstat").textContent="把連結傳給對方";}
+  else if(other.submitted){$("youname").textContent=other.name||"對方";$("youstat").textContent="已送出";}
+  else{$("youname").textContent="已加入";$("youstat").textContent="正在寫";}
+  $("invite").hidden=!!other;
+  $("bar").hidden=ph!=="edit";
+  $("newwrap").hidden=ph!=="reveal";
+  if(ph==="wait") notice("你的答案送出了。對方寫完後，這頁會自動揭曉，不用重新整理。",true);
+  else if(ph==="reveal") notice("兩個人都寫完了，答案揭曉。",true);
+  else notice("");
+  updateProgress();
+  const key=ph+"|"+(other&&other.answers?"y":"n");
+  if(key!==lastKey){lastKey=key;buildList(ph);}
+}
+function updateProgress(){const n=count(me.answers);$("progt").textContent="已回答 "+n+" / "+N;$("fill").style.width=(n/N*100)+"%";}
+
+function buildList(ph){
+  const list=$("list");list.textContent="";
+  const oA=(other&&other.answers)||{};
+  GROUPS.forEach(([t,s,from,to],gi)=>{
+    const g=document.createElement("section");g.className="group";
+    const eb=document.createElement("span");eb.className="eyebrow";eb.textContent="第 "+"一二三四五六"[gi]+" 章";
+    const h=document.createElement("h2");h.textContent=t;
+    const sub=document.createElement("p");sub.className="gsub";sub.textContent=s+"・第 "+from+"–"+to+" 題";
+    g.append(eb,h,sub);
+    for(let i=from;i<=to;i++){
+      const c=document.createElement("div");c.className="q";
+      const num=document.createElement("span");num.className="num";num.textContent="Q"+String(i).padStart(2,"0");
+      const bd=document.createElement("div");bd.className="body";
+      const tx=document.createElement("p");tx.className="text";tx.textContent=QS[i-1];bd.appendChild(tx);
+      if(ph==="edit"){
+        const ta=document.createElement("textarea");ta.id="q"+i;ta.placeholder="寫在這裡…";ta.value=me.answers[i]||"";
+        ta.addEventListener("input",()=>{me.answers[i]=ta.value;confirming=false;resetSubmit();updateProgress();$("mystat").textContent="填寫中・已答 "+count(me.answers)+" 題";scheduleSave();});
+        bd.appendChild(ta);
+      }else{
+        const box=document.createElement("div");box.className="ans"+(ph==="reveal"?"":" solo");
+        box.appendChild(ansBlock("me",me.name||"你",me.answers[i]));
+        if(ph==="reveal") box.appendChild(ansBlock("you",other.name||"對方",oA[i]));
+        bd.appendChild(box);
+      }
+      c.append(num,bd);g.appendChild(c);
+    }
+    list.appendChild(g);
+  });
+}
+function ansBlock(cls,name,val){
+  const d=document.createElement("div");d.className="a "+cls;
+  const b=document.createElement("b");b.textContent=name;
+  const t=document.createElement("span");
+  if(val&&String(val).trim())t.textContent=val;else{t.textContent="（沒有回答）";t.className="empty"}
+  d.append(b,t);return d;
+}
+
+function clean(){const a={};for(const k in me.answers){if(String(me.answers[k]).trim())a[k]=me.answers[k]}return a}
+function scheduleSave(){dirty=true;$("saved").textContent="";clearTimeout(saveT);saveT=setTimeout(save,1200);}
+let saving=false,again=false;
+async function save(){
+  if(saving){again=true;return}
+  saving=true;$("saved").textContent="儲存中…";
+  try{await rpc("diary_save_entry",{p_room:room,p_token:token,p_name:me.name,p_answers:clean(),p_submit:false});dirty=false;$("saved").textContent="已自動儲存";}
+  catch(e){$("saved").textContent="沒存到，網路恢復後會再試";setTimeout(scheduleSave,5000);}
+  saving=false;if(again){again=false;save();}
+}
+window.addEventListener("pagehide",()=>{if(dirty&&!me.submitted){try{fetch(SUPABASE_URL+"/rest/v1/rpc/diary_save_entry",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({p_room:room,p_token:token,p_name:me.name,p_answers:clean(),p_submit:false})})}catch(e){}}});
+
+$("myname").addEventListener("input",e=>{me.name=e.target.value;scheduleSave();});
+function resetSubmit(){$("submit").textContent="寫完了，送出";$("cancel").hidden=true;}
+$("cancel").addEventListener("click",()=>{confirming=false;resetSubmit();});
+$("submit").addEventListener("click",async()=>{
+  if(!me.name.trim()){notice("先在上面寫下你的暱稱，揭曉時對方才知道哪些是你寫的。");$("myname").focus();window.scrollTo({top:0});return}
+  if(!confirming){confirming=true;const left=N-count(me.answers);
+    $("submit").textContent=left?"還有 "+left+" 題沒寫，仍要送出":"確定送出（送出後不能修改）";$("cancel").hidden=false;return}
+  $("submit").disabled=true;$("submit").textContent="送出中…";clearTimeout(saveT);
+  try{
+    const ok=await rpc("diary_save_entry",{p_room:room,p_token:token,p_name:me.name.trim(),p_answers:clean(),p_submit:true});
+    if(ok===false) throw new Error("locked");
+    me.submitted=true;dirty=false;confirming=false;await refresh();window.scrollTo({top:0});
+  }catch(e){notice("送出失敗，請確認網路後再按一次。");}
+  $("submit").disabled=false;resetSubmit();
+});
+
+$("copy").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(roomLink());$("copied").textContent="已複製";}
+  catch(e){const r=document.createRange();r.selectNodeContents($("link"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copied").textContent="已選取，請按複製";}
+});
+
+async function refresh(){
+  const d=await rpc("diary_get_room",{p_room:room,p_token:token});
+  if(!d) return;
+  const wasEditing=!me.submitted;
+  if(!wasEditing||!lastKey){me.name=d.me.name||"";me.answers=d.me.answers||{};}
+  me.submitted=d.me.submitted; other=d.other;
+  render();
+  clearTimeout(pollT);
+  if(phase()!=="reveal") pollT=setTimeout(()=>refresh().catch(()=>{}),document.hidden?20000:5000);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&room&&phase()!=="reveal"){refresh().catch(()=>{})}});
+
+async function enter(){
+  $("start").hidden=true;
+  $("link").textContent=roomLink();
+  $("line").href="https://line.me/R/msg/text/?"+encodeURIComponent("一起來寫交換日記吧！52 個問題，寫完才能看到彼此的答案 👇\n"+roomLink());
+  let seat;
+  try{seat=await rpc("diary_join_room",{p_room:room,p_token:token});}
+  catch(e){notice("連不上資料庫，請確認網路後重新整理。");return}
+  if(seat==="missing"){notice("找不到這本日記，連結可能不完整。");$("newwrap").hidden=false;return}
+  if(seat==="full"){notice("這本日記已經有兩個人在寫了。想自己玩的話，可以開一本新的。");$("newwrap").hidden=false;return}
+  try{await refresh();}catch(e){notice("讀取失敗，請重新整理。");}
+}
+
+$("create").addEventListener("click",async()=>{
+  $("create").disabled=true;$("create").textContent="建立中…";
+  try{room=await rpc("diary_create_room",{p_token:token});history.replaceState(null,"","?r="+room);await enter();}
+  catch(e){notice("建立失敗，請確認網路後再試一次。");$("create").disabled=false;$("create").textContent="建立日記";}
+});
+
+if(!configured){notice("網站還沒接上資料庫：請在 index.html 最上方填入 Supabase 的網址和 anon key。");}
+else if(room){enter();}
+else{$("start").hidden=false;}
+</script>
+</body>
+</html>
