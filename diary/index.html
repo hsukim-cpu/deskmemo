@@ -162,6 +162,14 @@ a.btnlink:active{transform:translateY(3px);box-shadow:none}
     <div class="row"><button id="copy">複製連結</button><a class="btnlink" id="line" target="_blank" rel="noopener">用 LINE 傳</a><span class="saved" id="copied"></span></div>
   </section>
 
+  <section class="sheet swap" id="mylinkbox" hidden>
+    <span class="chip">只給你自己</span>
+    <h2>你的專屬連結</h2>
+    <p>換手機、換瀏覽器，或從 LINE 換到 Safari 時，用這條就能接回你寫的內容。<b>不要傳給對方</b>，這條等於你的鑰匙。</p>
+    <div class="share" id="mylink"></div>
+    <div class="row"><button class="ghost" id="copymine">複製專屬連結</button><span class="saved" id="copiedmine"></span></div>
+  </section>
+
   <div id="list"></div>
 
   <div class="row" style="justify-content:center;margin-top:8px" id="newwrap" hidden>
@@ -205,12 +213,21 @@ async function rpc(fn,args){
   if(!r.ok) throw new Error(fn+" "+r.status);
   return r.status===204?null:r.json();
 }
-function getToken(){
-  try{let t=localStorage.getItem("diary-token");if(!t){t=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()+String(Math.random()).slice(2)).replace(/-/g,"");localStorage.setItem("diary-token",t)}return t}
-  catch(e){return window.__t||(window.__t=String(Math.random()).slice(2)+Date.now()+String(Math.random()).slice(2))}
+function newToken(){return (crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()+String(Math.random()).slice(2)).replace(/-/g,"")}
+const mem={};
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return mem[k]||null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
+function tokenFor(r){
+  let t=lsGet("diary-token:"+r);
+  if(!t){t=lsGet("diary-token")||newToken();lsSet("diary-token:"+r,t);}
+  return t;
 }
-const token=getToken();
 let room=new URLSearchParams(location.search).get("r");
+let token=null;
+(function(){const m=location.hash.match(/k=([A-Za-z0-9]{16,64})/);
+  if(room&&m){lsSet("diary-token:"+room,m[1]);history.replaceState(null,"",location.pathname+location.search);}
+  if(room) token=tokenFor(room);})();
+function myLink(){return location.origin+location.pathname+"?r="+room+"#k="+token}
 let me={name:"",answers:{},submitted:false}, other=null, lastKey="", confirming=false, dirty=false, saveT=null, pollT=null;
 
 function notice(msg,calm){const n=$("notice");if(!msg){n.hidden=true;return}n.textContent=msg;n.className="notice"+(calm?" calm":"");n.hidden=false}
@@ -228,6 +245,7 @@ function render(){
   else if(other.submitted){$("youname").textContent=other.name||"對方";$("youstat").textContent="已送出";}
   else{$("youname").textContent="已加入";$("youstat").textContent="正在寫";}
   $("invite").hidden=!!other;
+  $("mylinkbox").hidden=false; $("mylink").textContent=myLink();
   $("bar").hidden=ph!=="edit";
   $("newwrap").hidden=ph!=="reveal";
   if(ph==="wait") notice("你的答案送出了。對方寫完後，這頁會自動揭曉，不用重新整理。",true);
@@ -309,10 +327,14 @@ $("copy").addEventListener("click",async()=>{
   catch(e){const r=document.createRange();r.selectNodeContents($("link"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copied").textContent="已選取，請按複製";}
 });
 
+$("copymine").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(myLink());$("copiedmine").textContent="已複製，可以存到備忘錄";}
+  catch(e){const r=document.createRange();r.selectNodeContents($("mylink"));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);$("copiedmine").textContent="已選取，請按複製";}
+});
 async function refresh(){
   const d=await rpc("diary_get_room",{p_room:room,p_token:token});
   if(!d){clearTimeout(pollT);$("who").hidden=true;$("bar").hidden=true;$("invite").hidden=true;$("list").textContent="";
-    notice("這本日記已經在另一個瀏覽器打開，位子交給那邊了。請到那個瀏覽器繼續寫。");$("newwrap").hidden=false;return}
+    notice("這本日記已經在另一個瀏覽器打開，位子交給那邊了。請用你的專屬連結，或到那個瀏覽器繼續寫。");$("newwrap").hidden=false;return}
   const wasEditing=!me.submitted;
   if(!wasEditing||!lastKey){me.name=d.me.name||"";me.answers=d.me.answers||{};}
   me.submitted=d.me.submitted; other=d.other;
@@ -330,13 +352,13 @@ async function enter(){
   try{seat=await rpc("diary_join_room",{p_room:room,p_token:token});}
   catch(e){notice("連不上資料庫，請確認網路後重新整理。");return}
   if(seat==="missing"){notice("找不到這本日記，連結可能不完整。");$("newwrap").hidden=false;return}
-  if(seat==="full"){notice("這本日記已經有兩個人在寫了。如果你之前用別的 App 或瀏覽器打開過，請回到那裡繼續寫。想自己玩的話，也可以開一本新的。");$("newwrap").hidden=false;return}
+  if(seat==="full"){notice("這本日記已經有兩個人在寫了。如果你是其中一位，請用你的「專屬連結」打開，或回到之前寫的那個瀏覽器。想自己玩的話，也可以開一本新的。");$("newwrap").hidden=false;return}
   try{await refresh();}catch(e){notice("讀取失敗，請重新整理。");}
 }
 
 $("create").addEventListener("click",async()=>{
   $("create").disabled=true;$("create").textContent="建立中…";
-  try{room=await rpc("diary_create_room",{p_token:token});history.replaceState(null,"","?r="+room);await enter();}
+  try{token=newToken();room=await rpc("diary_create_room",{p_token:token});lsSet("diary-token:"+room,token);history.replaceState(null,"","?r="+room);await enter();}
   catch(e){notice("建立失敗，請確認網路後再試一次。");$("create").disabled=false;$("create").textContent="建立日記";}
 });
 
