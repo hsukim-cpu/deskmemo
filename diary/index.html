@@ -157,7 +157,7 @@ a.btnlink:active{transform:translateY(3px);box-shadow:none}
   <section class="sheet swap" id="invite" hidden>
     <span class="chip">邀請對方</span>
     <h2>把這條連結傳給對方</h2>
-    <p>對方打開就能開始寫。這本日記只能兩個人寫，第三個人打開會被擋下。</p>
+    <p>對方打開就能開始寫。這本日記只能兩個人寫。你自己之後請一樣用這個瀏覽器打開，不要點自己傳出去的連結，不然會佔走對方的位子。</p>
     <div class="share" id="link"></div>
     <div class="row"><button id="copy">複製連結</button><a class="btnlink" id="line" target="_blank" rel="noopener">用 LINE 傳</a><span class="saved" id="copied"></span></div>
   </section>
@@ -311,7 +311,8 @@ $("copy").addEventListener("click",async()=>{
 
 async function refresh(){
   const d=await rpc("diary_get_room",{p_room:room,p_token:token});
-  if(!d) return;
+  if(!d){clearTimeout(pollT);$("who").hidden=true;$("bar").hidden=true;$("invite").hidden=true;$("list").textContent="";
+    notice("這本日記已經在另一個瀏覽器打開，位子交給那邊了。請到那個瀏覽器繼續寫。");$("newwrap").hidden=false;return}
   const wasEditing=!me.submitted;
   if(!wasEditing||!lastKey){me.name=d.me.name||"";me.answers=d.me.answers||{};}
   me.submitted=d.me.submitted; other=d.other;
@@ -329,7 +330,7 @@ async function enter(){
   try{seat=await rpc("diary_join_room",{p_room:room,p_token:token});}
   catch(e){notice("連不上資料庫，請確認網路後重新整理。");return}
   if(seat==="missing"){notice("找不到這本日記，連結可能不完整。");$("newwrap").hidden=false;return}
-  if(seat==="full"){notice("這本日記已經有兩個人在寫了。想自己玩的話，可以開一本新的。");$("newwrap").hidden=false;return}
+  if(seat==="full"){notice("這本日記已經有兩個人在寫了。如果你之前用別的 App 或瀏覽器打開過，請回到那裡繼續寫。想自己玩的話，也可以開一本新的。");$("newwrap").hidden=false;return}
   try{await refresh();}catch(e){notice("讀取失敗，請重新整理。");}
 }
 
