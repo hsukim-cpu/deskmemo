@@ -123,8 +123,6 @@ a.btnlink{display:inline-flex;align-items:center;justify-content:center;min-heig
 a.btnlink:active{transform:translateY(3px);box-shadow:none}
 [hidden]{display:none!important}
 .talk{display:grid;gap:8px;margin-top:4px;padding-top:12px;border-top:1.5px dashed var(--line)}
-.hint{font-size:14px;color:var(--ink-2);line-height:1.7}
-.hint .lab{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:0 8px 1px;font-size:12px;background:var(--butter);color:var(--ink);margin-right:6px}
 .thread{display:flex;flex-direction:column;gap:6px}
 .thread:empty{display:none}
 .msg{max-width:86%;border:1.5px solid var(--ink);border-radius:14px;padding:6px 11px 7px;white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.6}
@@ -221,12 +219,6 @@ const QS=["你第一次看到我的時候在想什麼","你覺得我哪個地方
 "如果明天突然放假，你想跟我去哪裡","如果可以一起吃一頓飯，你最想去哪一家","如果可以一起完成一個願望，你會選什麼","如果我們一起養一隻寵物，你想養什麼","如果可以一起住在任何地方，你會選哪裡","如果退休後可以自由生活，你想怎麼過","你希望我們老了以後還保留什麼習慣","你想跟我一起看著什麼事情慢慢實現",
 "你覺得我們最值得珍惜的一段回憶是哪段","如果可以重新經歷一次我們的某個時刻，你會選哪一個","你最想跟我說但一直沒有說出口的一句話","你覺得我帶給你最大的改變是什麼","你覺得我們這段感情最珍貴的地方是什麼","如果未來的我們回頭看現在，你希望會記得什麼"];
 const GROUPS=[["關於我們","心動與默契",1,10],["吃醋與信任","界線與安全感",11,20],["了解彼此","情緒與內心",21,29],["相處與約會","溝通、儀式與浪漫",30,38],["如果與未來","一起想像的日子",39,46],["回憶與心裡話","最後幾題，慢慢寫",47,52]];
-const FOLLOW=["那時候的你，有猜到我們會走到現在嗎？","這個地方，你覺得我自己知道嗎？","那一刻我做了什麼，你還記得細節嗎？","下次想再有這種默契，會是在什麼場合？","這種相處，我們最近多久沒有了？","有沒有哪一刻，你也希望我那樣懂你？","有沒有一件我做過、你一直沒說謝謝的事？","這個不一樣，是讓你更喜歡，還是需要適應？","這個差異，我們平常是怎麼互相遷就的？","你最怕朋友對我有什麼誤會？",
-"我們各自的吃醋點，對方真的有察覺嗎？","如果時間不夠，哪一種陪伴對你最不能少？","有沒有哪種情況，你其實會在意但沒說？","我們現在的報備，你覺得剛好、太多還是太少？","如果真的遇到，你希望我怎麼告訴你？","你在意的是公開本身，還是它代表的意思？","想看的時候，通常是因為什麼感覺？","那種時候，我說哪句話最能讓你安心？","這條底線，是從哪段經驗學來的嗎？","我們之間，有沒有哪一刻讓信任一下子變多？",
-"這個部分，我最近有沒有哪次沒接住？","下次你壓力大，要怎麼讓我知道？要不要約一個暗號？","我平常給的是哪一種？跟你需要的一樣嗎？","那句話，我有沒有不小心說過？","如果你不太說，我要怎麼發現你有心事？","如果你開始變成那樣，希望我怎麼提醒你？","這個改變，你喜歡嗎？","你覺得我已經懂了多少？還差哪裡？","想改的時候，需要我怎麼幫你？",
-"我們上一次溝通得很好，是哪一次？","我們平常的道歉方式，彼此都有收到嗎？","冷靜的時候，你希望我在旁邊還是給你空間？","最近有沒有一件事，其實很想跟我討論？","我們現在的頻率，你覺得剛好嗎？","有沒有哪個日子，你其實很在意？","我送過的驚喜裡，哪一個最接近？","下個月就去一次，要排哪一天？","你猜我會怎麼回答這題？",
-"我們兩個的答案，可以合併成一趟嗎？","那就把這頓約起來，訂哪一天？","這個願望，第一步可以是什麼？","牠會叫什麼名字？","在那裡的一天，會怎麼過？","到時候，你覺得我們還會一起做什麼？","這個習慣，我們現在已經開始了嗎？","一年後的現在，希望它走到哪一步？",
-"那段回憶裡，你最記得的畫面是什麼？","重來一次的話，你會做什麼不一樣的事？","現在說出來了，感覺怎麼樣？","你覺得我自己有發現這個改變嗎？","我們要怎麼保護這個地方？","要不要一年後再寫一次，看看答案有沒有變？"];
 const N=QS.length;
 const $=id=>document.getElementById(id);
 const configured=!SUPABASE_URL.includes("YOUR-PROJECT")&&!SUPABASE_ANON_KEY.includes("YOUR-");
@@ -276,7 +268,7 @@ function render(){
   $("newwrap").hidden=ph!=="reveal";
   $("talksum").hidden=ph!=="reveal";
   if(ph==="wait") notice("你的答案送出了。對方寫完後，這頁會自動揭曉，不用重新整理。",true);
-  else if(ph==="reveal") notice("兩個人都寫完了，答案揭曉。每一題下面都能延伸聊聊，對方回你時這頁會自動出現。",true);
+  else if(ph==="reveal") notice("兩個人都寫完了，答案揭曉。想追問或回應哪一題，就在那題下面按「延伸聊聊」，對方回你時這頁會自動出現。",true);
   else notice("");
   updateProgress();
   const key=ph+"|"+(other&&other.answers?"y":"n");
@@ -325,22 +317,21 @@ function ansBlock(cls,name,val){
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 function talkBlock(i){
   const t=el("div","talk");
-  const hint=el("p","hint");hint.append(el("span","lab","延伸"),document.createTextNode(FOLLOW[i-1]));
   const th=el("div","thread");th.dataset.q=i;threads[i]=th;
-  const opener=el("button","small ghost opener","回一句");
+  const opener=el("button","small ghost opener","延伸聊聊");
   const reply=el("div","reply");reply.hidden=true;
-  const ta=el("textarea");ta.id="c"+i;ta.maxLength=1000;ta.placeholder="想說什麼都可以…";
+  const ta=el("textarea");ta.id="c"+i;ta.maxLength=1000;ta.placeholder="看了對方的答案，想追問或回應什麼…";
   const row=el("div","row");const err=el("span","err");const send=el("button","small","送出");
   row.append(err,send);reply.append(ta,row);
   opener.addEventListener("click",()=>{reply.hidden=false;opener.hidden=true;ta.focus();});
   send.addEventListener("click",async()=>{
     const body=ta.value.trim();if(!body){ta.focus();return}
     send.disabled=true;send.textContent="送出中…";err.textContent="";
-    try{const c=await rpc("diary_add_comment",{p_room:room,p_token:token,p_q:i,p_body:body});ta.value="";addComments([c]);reply.hidden=true;opener.hidden=false;opener.textContent="再回一句";}
+    try{const c=await rpc("diary_add_comment",{p_room:room,p_token:token,p_q:i,p_body:body});ta.value="";addComments([c]);reply.hidden=true;opener.hidden=false;opener.textContent="回一句";}
     catch(e){err.textContent="沒送出去，請再按一次";}
     send.disabled=false;send.textContent="送出";
   });
-  t.append(hint,th,opener,reply);
+  t.append(th,opener,reply);
   if(io) io.observe(th);
   return t;
 }
@@ -353,14 +344,14 @@ function renderThread(q){
     m.append(el("span","meta",(mine?(me.name||"你"):((other&&other.name)||"對方"))+"・"+fmt(c.at)),document.createTextNode(c.body));
     th.appendChild(m);
   }
-  const card=$("card"+q);if(card){const op=card.querySelector(".opener");if(op&&th.childElementCount&&op.textContent==="回一句")op.textContent="再回一句";}
+  const card=$("card"+q);if(card){const op=card.querySelector(".opener");if(op&&th.childElementCount&&op.textContent==="延伸聊聊")op.textContent="回一句";}
 }
 function unreadQs(){const s=new Set();for(const c of comments){if(c.seat!==mySeat&&c.id>(seen[c.q]||0))s.add(c.q)}return [...s].sort((a,b)=>a-b)}
 function updateTalkSummary(){
   const un=comments.filter(c=>c.seat!==mySeat&&c.id>(seen[c.q]||0)).length;
   const talked=new Set(comments.map(c=>c.q)).size;
   $("jump").hidden=!un;
-  $("talktext").textContent= un? ((other&&other.name)||"對方")+" 留了 "+un+" 則新的話給你" : talked? "你們已經延伸聊了 "+talked+" 題" : "每一題都有一句延伸問題，從最有感的那題開始回一句吧。";
+  $("talktext").textContent= un? ((other&&other.name)||"對方")+" 留了 "+un+" 則新的話給你" : talked? "你們已經延伸聊了 "+talked+" 題" : "看完彼此的答案，想追問或回應哪一題，就在那題下面按「延伸聊聊」。";
 }
 function addComments(list){
   const qs=new Set();
